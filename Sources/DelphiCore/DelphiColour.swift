@@ -7,7 +7,7 @@ import SwiftUI
 
 /// Unified colour model with manual conversions for all colour spaces.
 /// Uses sRGB as the hub format. Supports Display P3 where available.
-public struct DelphiColour: Equatable {
+public struct DelphiColour: Equatable, Hashable {
     /// sRGB components 0–1
     public var r: Double
     public var g: Double

@@ -37,8 +37,24 @@ public enum ColourNames {
         }
     }()
 
-    /// Find the closest named colour by RGB values (0-255).
+    private static var cache: [Int: String] = [:]
+    private static let lock = NSLock()
+
+    /// Find the closest named colour by RGB values (0-255). Memoised: one scan per distinct colour.
     public static func closest(r: Int, g: Int, b: Int) -> String {
+        let key = r << 16 | g << 8 | b
+        lock.lock()
+        let cached = cache[key]
+        lock.unlock()
+        if let cached { return cached }
+        let name = scan(r: r, g: g, b: b)
+        lock.lock()
+        cache[key] = name
+        lock.unlock()
+        return name
+    }
+
+    private static func scan(r: Int, g: Int, b: Int) -> String {
         var bestName = "Unknown"
         var bestDist = Int.max
         for entry in database {
