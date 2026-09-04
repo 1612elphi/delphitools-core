@@ -42,7 +42,7 @@ public enum ColourNames {
 
     /// Find the closest named colour by RGB values (0-255). Memoised: one scan per distinct colour.
     public static func closest(r: Int, g: Int, b: Int) -> String {
-        let key = r << 16 | g << 8 | b
+        let key = min(max(r, 0), 255) << 16 | min(max(g, 0), 255) << 8 | min(max(b, 0), 255)
         lock.lock()
         let cached = cache[key]
         lock.unlock()
