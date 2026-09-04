@@ -7,15 +7,10 @@ public enum ColourFormat: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String { rawValue.uppercased() }
 
+    /// The matching `ColourExport` template.
+    public var exportID: String { self == .hex ? "hex" : "css-\(rawValue)" }
+
     public func formatted(_ colour: DelphiColour) -> String {
-        switch self {
-        case .hex: colour.hex
-        case .rgb: colour.rgbString
-        case .hsl: colour.hslString
-        case .lab: colour.labString
-        case .lch: colour.lchString
-        case .oklab: colour.oklabString
-        case .oklch: colour.oklchString
-        }
+        ColourExport.format(exportID)?.format(colour) ?? colour.hex
     }
 }

@@ -7,14 +7,20 @@ public struct WCAGLevel: Identifiable, Sendable {
     public var id: String { name }
 
     public static let aa = 4.5
+    public static let aaLarge = 3.0
     public static let aaa = 7.0
 
     public static let all = [
         WCAGLevel(name: "AA normal", ratio: aa),
-        WCAGLevel(name: "AA large", ratio: 3),
+        WCAGLevel(name: "AA large", ratio: aaLarge),
         WCAGLevel(name: "AAA normal", ratio: aaa),
         WCAGLevel(name: "AAA large", ratio: aa),
     ]
+
+    /// "AAA", "AA", "AA large" or "Fail".
+    public static func grade(for ratio: Double) -> String {
+        ratio >= aaa ? "AAA" : ratio >= aa ? "AA" : ratio >= aaLarge ? "AA large" : "Fail"
+    }
 }
 
 extension DelphiColour {

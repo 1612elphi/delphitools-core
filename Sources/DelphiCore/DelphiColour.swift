@@ -294,7 +294,7 @@ public struct DelphiColour: Equatable, Hashable {
 
 // MARK: - Helpers
 
-private func clamp01(_ v: Double) -> Double {
+func clamp01(_ v: Double) -> Double {
     min(max(v, 0), 1)
 }
 

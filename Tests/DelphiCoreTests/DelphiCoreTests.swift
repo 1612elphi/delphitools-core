@@ -64,3 +64,37 @@ import Testing
         #expect(strategy.generator(7, nil).count == 7, "\(strategy.id)")
     }
 }
+
+@Test func exportFormats() {
+    let blue = DelphiColour.fromHex("#3B82F6")!
+    #expect(ColourExport.format("hexa")?.format(blue) == "#3B82F6FF")
+    #expect(ColourExport.format("css-rgba")?.format(blue) == "rgba(59, 130, 246, 1)")
+    #expect(ColourExport.format("swiftui-rgb")?.format(blue) == "Color(red: 0.231, green: 0.510, blue: 0.965)")
+    #expect(ColourExport.format("net-argb")?.format(blue) == "Color.FromArgb(255, 59, 130, 246)")
+    #expect(Set(ColourExport.all.map(\.id)).count == ColourExport.all.count)
+    let red = DelphiColour(r: 1, g: 0, b: 0).hsb
+    #expect(red.h == 0 && red.s == 1 && red.b == 1)
+    let white = DelphiColour(r: 1, g: 1, b: 1).displayP3
+    #expect(abs(white.r - 1) < 0.001 && abs(white.g - 1) < 0.001 && abs(white.b - 1) < 0.001)
+}
+
+@Test func notationsMapToTemplates() {
+    let blue = DelphiColour.fromHex("#3B82F6")!
+    for format in ColourFormat.allCases {
+        #expect(ColourExport.format(format.exportID) != nil, "\(format.rawValue)")
+        #expect(!format.formatted(blue).isEmpty)
+    }
+    #expect(ColourFormat.hex.formatted(blue) == "#3B82F6")
+}
+
+@Test func templateRendering() {
+    let blue = DelphiColour.fromHex("#3B82F6")!
+    #expect(ColourTemplate.render("%[hex_raw]/%[alpha100]/%[nope]/%[", blue) == "3B82F6/100/%[nope]/%[")
+    #expect(ColourExport.format("css-hsl")?.format(blue) == blue.hslString)
+    #expect(ColourExport.format("css-oklch")?.format(blue) == blue.oklchString)
+    #expect(ColourExport.format("css-lab")?.format(blue) == blue.labString)
+    let cmyk = DelphiColour(r: 1, g: 0, b: 0).cmyk
+    #expect(cmyk.c == 0 && cmyk.m == 1 && cmyk.y == 1 && cmyk.k == 0)
+    #expect(blue.tints(3).count == 3 && blue.shades(3).count == 3)
+    #expect(blue.tints(3).last!.oklch.l > blue.oklch.l && blue.shades(3).last!.oklch.l < blue.oklch.l)
+}
