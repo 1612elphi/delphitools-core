@@ -98,3 +98,13 @@ import Testing
     #expect(blue.tints(3).count == 3 && blue.shades(3).count == 3)
     #expect(blue.tints(3).last!.oklch.l > blue.oklch.l && blue.shades(3).last!.oklch.l < blue.oklch.l)
 }
+
+@Test func cleanLinks() {
+    #expect(LinkCleaner.clean("https://example.com/a?x=1&utm_source=tw&fbclid=abc") == "https://example.com/a?x=1")
+    #expect(LinkCleaner.clean("https://example.com/a?utm_source=tw#:~:text=hi") == "https://example.com/a")
+    #expect(LinkCleaner.clean("https://example.com/a?q=a%20b#section") == "https://example.com/a?q=a%20b#section")
+    #expect(LinkCleaner.clean("https://www.amazon.de/Some-Thing/dp/B08XYZ1234/ref=sr_1_3?crid=Q&keywords=k") == "https://www.amazon.de/dp/B08XYZ1234")
+    #expect(LinkCleaner.clean("https://youtu.be/abc?si=xyz") == "https://youtu.be/abc")
+    #expect(LinkCleaner.clean("https://example.com/?si=keep") == "https://example.com/?si=keep")
+    #expect(LinkCleaner.clean("not a url") == "not a url")
+}
