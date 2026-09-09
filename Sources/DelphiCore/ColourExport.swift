@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ColourExportFormat: Identifiable, Codable, Hashable {
+public struct ColourExportFormat: Identifiable, Codable, Hashable, Sendable {
     public let id: String
     public var name: String
     public var group: String
@@ -18,7 +18,7 @@ public struct ColourExportFormat: Identifiable, Codable, Hashable {
     }
 }
 
-public struct ColourExportGroup: Identifiable {
+public struct ColourExportGroup: Identifiable, Sendable {
     public let name: String
     public let formats: [ColourExportFormat]
 

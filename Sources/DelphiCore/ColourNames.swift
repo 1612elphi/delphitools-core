@@ -37,7 +37,7 @@ public enum ColourNames {
         }
     }()
 
-    private static var cache: [Int: String] = [:]
+    nonisolated(unsafe) private static var cache: [Int: String] = [:]
     private static let lock = NSLock()
 
     /// Find the closest named colour by RGB values (0-255). Memoised: one scan per distinct colour.

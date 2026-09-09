@@ -17,12 +17,12 @@ public enum PaletteCategory: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-public struct PaletteStrategy: Identifiable, Hashable {
+public struct PaletteStrategy: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let category: PaletteCategory
     /// (count, hue of the first locked colour)
-    public let generator: (Int, Double?) -> [DelphiColour]
+    public let generator: @Sendable (Int, Double?) -> [DelphiColour]
 
     public static func == (lhs: PaletteStrategy, rhs: PaletteStrategy) -> Bool { lhs.id == rhs.id }
     public func hash(into hasher: inout Hasher) { hasher.combine(id) }

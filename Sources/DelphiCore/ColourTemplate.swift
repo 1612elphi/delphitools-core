@@ -21,16 +21,16 @@ public enum ColourTemplate {
         }
     }
 
-    public struct Variable: Identifiable {
+    public struct Variable: Identifiable, Sendable {
         public let token: String
         public let label: String
-        let value: (Values) -> String
+        let value: @Sendable (Values) -> String
 
         public var id: String { token }
         public var placeholder: String { "%[\(token)]" }
     }
 
-    public struct Group: Identifiable {
+    public struct Group: Identifiable, Sendable {
         public let name: String
         public let variables: [Variable]
 
@@ -101,7 +101,7 @@ public enum ColourTemplate {
         return output + rest
     }
 
-    private static func v(_ token: String, _ label: String, _ value: @escaping (Values) -> String) -> Variable {
+    private static func v(_ token: String, _ label: String, _ value: @escaping @Sendable (Values) -> String) -> Variable {
         Variable(token: token, label: label, value: value)
     }
 

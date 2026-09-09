@@ -23,5 +23,5 @@ let package = Package(
             dependencies: ["DelphiCore"]
         ),
     ],
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )
