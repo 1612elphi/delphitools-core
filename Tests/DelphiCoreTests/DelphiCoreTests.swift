@@ -108,3 +108,16 @@ import Testing
     #expect(LinkCleaner.clean("https://example.com/?si=keep") == "https://example.com/?si=keep")
     #expect(LinkCleaner.clean("not a url") == "not a url")
 }
+
+@Test func unitConversion() {
+    #expect(UnitConversion.answers("10 in to mm").map(\.text) == ["254 mm"])
+    #expect(UnitConversion.answers("10 mm in in").map(\.text) == ["0.393701 in"])
+    #expect(UnitConversion.answers("2,5 kg to lb").map(\.text) == ["5.51156 lb"])
+    #expect(UnitConversion.answers("100 c to f").map(\.text) == ["212 °F"])
+    #expect(UnitConversion.answers("24px to rem").map(\.text) == ["1.5 rem"])
+    #expect(UnitConversion.answers("12pt").map(\.text) == ["4.23333 mm", "0.166667 in", "0.423333 cm"])
+    #expect(UnitConversion.answers("1 fl oz to ml").map(\.text) == ["29.5735 mL"])
+    #expect(UnitConversion.answers("10 mm to kg").isEmpty)
+    #expect(UnitConversion.answers("10").isEmpty)
+    #expect(UnitConversion.answers("safari").isEmpty)
+}
