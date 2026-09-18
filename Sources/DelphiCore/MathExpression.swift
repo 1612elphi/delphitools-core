@@ -262,7 +262,7 @@ public struct MathParser {
 
 public struct MathEvaluator {
 
-    public static func evaluate(_ node: MathNode, x: Double) -> Double {
+    public static func evaluate(_ node: MathNode, x: Double, degrees: Bool = false) -> Double {
         switch node {
         case .number(let val):
             return val
@@ -271,8 +271,8 @@ public struct MathEvaluator {
             return x
 
         case .binary(let left, let op, let right):
-            let l = evaluate(left, x: x)
-            let r = evaluate(right, x: x)
+            let l = evaluate(left, x: x, degrees: degrees)
+            let r = evaluate(right, x: x, degrees: degrees)
             switch op {
             case "+": return l + r
             case "-": return l - r
@@ -283,19 +283,21 @@ public struct MathEvaluator {
             }
 
         case .unary(let op, let operand):
-            let val = evaluate(operand, x: x)
+            let val = evaluate(operand, x: x, degrees: degrees)
             if op == "-" { return -val }
             return val
 
         case .function(let name, let arg):
-            let val = evaluate(arg, x: x)
+            let val = evaluate(arg, x: x, degrees: degrees)
+            let angle = degrees ? val * .pi / 180 : val
+            let out = degrees ? 180 / Double.pi : 1
             switch name {
-            case "sin": return sin(val)
-            case "cos": return cos(val)
-            case "tan": return tan(val)
-            case "asin": return asin(val)
-            case "acos": return acos(val)
-            case "atan": return atan(val)
+            case "sin": return sin(angle)
+            case "cos": return cos(angle)
+            case "tan": return tan(angle)
+            case "asin": return asin(val) * out
+            case "acos": return acos(val) * out
+            case "atan": return atan(val) * out
             case "sqrt": return sqrt(val)
             case "abs": return abs(val)
             case "log": return log10(val)
@@ -327,9 +329,9 @@ public struct MathExpression {
         self.ast = parser.parse()
     }
 
-    public func evaluate(x: Double) -> Double {
+    public func evaluate(x: Double, degrees: Bool = false) -> Double {
         guard let ast else { return .nan }
-        return MathEvaluator.evaluate(ast, x: x)
+        return MathEvaluator.evaluate(ast, x: x, degrees: degrees)
     }
 
     /// Test with x = 1 to verify the expression produces a finite result.

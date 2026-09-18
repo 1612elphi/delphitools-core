@@ -120,4 +120,9 @@ import Testing
     #expect(UnitConversion.answers("10 mm to kg").isEmpty)
     #expect(UnitConversion.answers("10").isEmpty)
     #expect(UnitConversion.answers("safari").isEmpty)
+    #expect(UnitConversion.catalogue.map(\.dimension).prefix(3) == ["Length", "Mass", "Temperature"])
+    #expect(UnitConversion.catalogue.count == 13)
+    #expect(abs(MathExpression("sin(90)").evaluate(x: 0, degrees: true) - 1) < 1e-12)
+    #expect(abs(MathExpression("atan(1)").evaluate(x: 0, degrees: true) - 45) < 1e-12)
+    #expect(abs(MathExpression("sin(pi/2)").evaluate(x: 0) - 1) < 1e-12)
 }

@@ -31,6 +31,39 @@ public enum UnitConversion {
         return targets.map { Answer(value: convert(measurement, to: $0), symbol: $0.symbol) }
     }
 
+    /// Every accepted spelling, grouped by dimension in table order.
+    public static var catalogue: [(dimension: String, names: [String])] {
+        var groups: [(dimension: String, names: [String])] = []
+        for entry in units {
+            let dimension = dimensionName(entry.unit)
+            if groups.last?.dimension == dimension {
+                groups[groups.count - 1].names += entry.names
+            } else {
+                groups.append((dimension, entry.names))
+            }
+        }
+        return groups
+    }
+
+    private static func dimensionName(_ unit: Dimension) -> String {
+        switch unit {
+        case is UnitLength: "Length"
+        case is UnitMass: "Mass"
+        case is UnitTemperature: "Temperature"
+        case is UnitVolume: "Volume"
+        case is UnitArea: "Area"
+        case is UnitSpeed: "Speed"
+        case is UnitDuration: "Duration"
+        case is UnitInformationStorage: "Storage"
+        case is UnitAngle: "Angle"
+        case is UnitPressure: "Pressure"
+        case is UnitEnergy: "Energy"
+        case is UnitPower: "Power"
+        case is UnitFrequency: "Frequency"
+        default: String(describing: type(of: unit))
+        }
+    }
+
     // comma decimals, lazy unit
     nonisolated(unsafe) private static let shape = /(-?\d+(?:[.,]\d+)?)\s*([^\d\s].*?)(?:\s+(?:to|in|as)\s+(.+))?/
 
