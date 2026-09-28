@@ -11,9 +11,23 @@ public enum MathToken: Equatable {
     case function(String) // sin, cos, etc.
     case constant(String) // pi, e
     case comma
+    /// A word, number or character the tokeniser cannot read; no expression parses with one.
+    case unknown(String)
 }
 
 public struct MathTokeniser {
+
+    /// The functions the tokeniser reads, and how many arguments each takes. `log` is common with one argument,
+    /// `log(a, b)` is the logarithm of `a` to base `b`; `nthroot(a, n)` is the `n`th root of `a`.
+    public static let functions: [String: ClosedRange<Int>] = {
+        let unary = ["sin", "cos", "tan", "sec", "csc", "cot", "asin", "acos", "atan", "asec", "acsc", "acot",
+                     "sinh", "cosh", "tanh", "asinh", "acosh", "atanh",
+                     "sqrt", "cbrt", "abs", "ln", "exp", "floor", "ceil", "round"]
+        var table = Dictionary(uniqueKeysWithValues: unary.map { ($0, 1...1) })
+        table["log"] = 1...2
+        for binary in ["nthroot", "mod", "min", "max"] { table[binary] = 2...2 }
+        return table
+    }()
 
     public static func tokenise(_ input: String) -> [MathToken] {
         var tokens: [MathToken] = []
@@ -34,9 +48,7 @@ public struct MathTokeniser {
                     numStr.append(chars[i])
                     i += 1
                 }
-                if let val = Double(numStr) {
-                    tokens.append(.number(val))
-                }
+                tokens.append(Double(numStr).map(MathToken.number) ?? .unknown(numStr))
                 continue
             }
 
@@ -63,9 +75,7 @@ public struct MathTokeniser {
                 }
 
                 switch word {
-                case "sin", "cos", "tan", "asin", "acos", "atan",
-                     "sqrt", "abs", "log", "ln", "exp",
-                     "floor", "ceil", "round":
+                case _ where functions[word] != nil:
                     tokens.append(.function(word))
                 case "pi":
                     tokens.append(.constant("pi"))
@@ -74,14 +84,12 @@ public struct MathTokeniser {
                 case "e":
                     tokens.append(.constant("e"))
                 default:
-                    // Unknown word — treat each letter as variable or skip
-                    // For resilience, just skip unknown identifiers
-                    break
+                    tokens.append(.unknown(word))
                 }
                 continue
             }
 
-            // Unknown character, skip
+            tokens.append(.unknown(String(c)))
             i += 1
         }
 
@@ -136,7 +144,7 @@ public struct MathTokeniser {
 /// power      = unary ('^' power)?          // right-associative
 /// unary      = '-' unary | primary
 /// primary    = NUMBER | VARIABLE | CONSTANT
-///            | FUNCTION '(' expression ')'
+///            | FUNCTION '(' expression (',' expression)* ')'
 ///            | '(' expression ')'
 /// ```
 public indirect enum MathNode {
@@ -144,7 +152,8 @@ public indirect enum MathNode {
     case variable
     case binary(MathNode, Character, MathNode)
     case unary(Character, MathNode)
-    case function(String, MathNode)
+    /// A function and its arguments, as many as `MathTokeniser.functions` allows it.
+    case function(String, [MathNode])
 }
 
 public struct MathParser {
@@ -240,10 +249,15 @@ public struct MathParser {
             // Expect '('
             guard current == .leftParen else { return nil }
             advance()
-            guard let arg = parseExpression() else { return nil }
-            guard current == .rightParen else { return nil }
+            var arguments: [MathNode] = []
+            repeat {
+                if !arguments.isEmpty { advance() }
+                guard let argument = parseExpression() else { return nil }
+                arguments.append(argument)
+            } while current == .comma
+            guard current == .rightParen, MathTokeniser.functions[name]?.contains(arguments.count) == true else { return nil }
             advance()
-            return .function(name, arg)
+            return .function(name, arguments)
 
         case .leftParen:
             advance()
@@ -287,28 +301,59 @@ public struct MathEvaluator {
             if op == "-" { return -val }
             return val
 
-        case .function(let name, let arg):
-            let val = evaluate(arg, x: x, degrees: degrees)
-            let angle = degrees ? val * .pi / 180 : val
-            let out = degrees ? 180 / Double.pi : 1
-            switch name {
-            case "sin": return sin(angle)
-            case "cos": return cos(angle)
-            case "tan": return tan(angle)
-            case "asin": return asin(val) * out
-            case "acos": return acos(val) * out
-            case "atan": return atan(val) * out
-            case "sqrt": return sqrt(val)
-            case "abs": return abs(val)
-            case "log": return log10(val)
-            case "ln": return log(val)
-            case "exp": return exp(val)
-            case "floor": return floor(val)
-            case "ceil": return ceil(val)
-            case "round": return (val).rounded()
-            default: return .nan
-            }
+        case .function(let name, let arguments):
+            return apply(name, arguments.map { evaluate($0, x: x, degrees: degrees) }, degrees: degrees)
         }
+    }
+
+    /// `name` of `values`; angles in and out are in degrees when `degrees` is set.
+    public static func apply(_ name: String, _ values: [Double], degrees: Bool = false) -> Double {
+        guard let a = values.first else { return .nan }
+        let b = values.count > 1 ? values[1] : .nan
+        let angle = degrees ? a * .pi / 180 : a
+        let out = degrees ? 180 / Double.pi : 1
+        switch name {
+        case "sin": return sin(angle)
+        case "cos": return cos(angle)
+        case "tan": return tan(angle)
+        case "sec": return 1 / cos(angle)
+        case "csc": return 1 / sin(angle)
+        case "cot": return cos(angle) / sin(angle)
+        case "asin": return asin(a) * out
+        case "acos": return acos(a) * out
+        case "atan": return atan(a) * out
+        case "asec": return acos(1 / a) * out
+        case "acsc": return asin(1 / a) * out
+        // nerdamer's acot, continuous through 0
+        case "acot": return (.pi / 2 - atan(a)) * out
+        case "sinh": return sinh(a)
+        case "cosh": return cosh(a)
+        case "tanh": return tanh(a)
+        case "asinh": return asinh(a)
+        case "acosh": return acosh(a)
+        case "atanh": return atanh(a)
+        case "sqrt": return sqrt(a)
+        case "cbrt": return cbrt(a)
+        case "nthroot": return root(a, b)
+        case "abs": return abs(a)
+        case "log": return values.count > 1 ? log(a) / log(b) : log10(a)
+        case "ln": return log(a)
+        case "exp": return exp(a)
+        case "floor": return floor(a)
+        case "ceil": return ceil(a)
+        case "round": return a.rounded()
+        // nerdamer's mod is JavaScript's %: the dividend's sign
+        case "mod": return fmod(a, b)
+        // Math.min and Math.max pass NaN on
+        case "min": return a.isNaN || b.isNaN ? .nan : Swift.min(a, b)
+        case "max": return a.isNaN || b.isNaN ? .nan : Swift.max(a, b)
+        default: return .nan
+        }
+    }
+
+    /// The `n`th root of `a`; real and negative for a negative `a` and an odd `n`, as nerdamer's, where `pow` is NaN.
+    private static func root(_ a: Double, _ n: Double) -> Double {
+        a < 0 && abs(n.truncatingRemainder(dividingBy: 2)) == 1 ? -pow(-a, 1 / n) : pow(a, 1 / n)
     }
 }
 
