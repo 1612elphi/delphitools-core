@@ -216,6 +216,8 @@ public enum StitchLayoutEngine {
 
     // ponytail: 16384 = safe render side cap; larger stitches downscale to fit
     public static let maxExportSide: CGFloat = 16384
+    /// 64 MP is 256 MB of RGBA: a big batch grid stays within the side cap but not within memory.
+    public static let maxExportPixels: CGFloat = 64_000_000
 
     /// centre-crop source rect covering a target aspect (w/h)
     public static func coverCrop(_ src: StitchSource, aspect: CGFloat) -> CGRect {
@@ -334,17 +336,18 @@ public enum StitchLayoutEngine {
                             ops: ops, seams: [])
     }
 
-    /// The pixel size a layout renders at, downscaled past `maxExportSide`.
+    /// The pixel size a layout renders at, downscaled past `maxExportSide` or `maxExportPixels`.
     public static func exportSize(_ size: CGSize) -> CGSize {
-        let scale = min(1, maxExportSide / max(size.width, size.height, 1))
+        let area = max(size.width * size.height, 1)
+        let scale = min(1, maxExportSide / max(size.width, size.height, 1), (maxExportPixels / area).squareRoot())
         return CGSize(width: max(1, (size.width * scale).rounded()), height: max(1, (size.height * scale).rounded()))
     }
 
     /// Render a layout to a bitmap at `exportSize`, in the base image's colour space. `opaque` mattes the whole
     /// canvas white first — alpha-less formats (JPEG) would otherwise flatten transparency to black.
     public static func render(_ layout: StitchLayout, opaque: Bool) -> CGImage? {
-        let scale = min(1, maxExportSide / max(layout.size.width, layout.size.height))
         let size = exportSize(layout.size)
+        let scale = size.width / max(layout.size.width, 1)
         let base = layout.ops.first { $0.isBase }?.src.image.colorSpace
         let space = base.flatMap { $0.model == .rgb ? $0 : nil } ?? CGColorSpace(name: CGColorSpace.sRGB)!
         let alpha = opaque ? CGImageAlphaInfo.noneSkipLast : .premultipliedLast

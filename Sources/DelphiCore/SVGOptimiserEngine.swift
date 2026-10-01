@@ -5,10 +5,12 @@ public struct SVGOptimiserError: Error, LocalizedError {
     public var errorDescription: String? { message }
 }
 
-@MainActor
-public final class SVGOptimiserEngine {
+/// svgo in its own JavaScriptCore context. Callable from any thread, one optimise at a time: a large SVG takes long
+/// enough to stall the main thread, so the iOS tool runs it in the background.
+public final class SVGOptimiserEngine: @unchecked Sendable {
 
     private let context: JSContext
+    private let lock = NSLock()
 
     public init?() {
         guard let ctx = JSContext(),
@@ -24,6 +26,10 @@ public final class SVGOptimiserEngine {
     }
 
     public func optimise(_ svg: String) -> Result<String, SVGOptimiserError> {
+        lock.withLock { run(svg) }
+    }
+
+    private func run(_ svg: String) -> Result<String, SVGOptimiserError> {
         context.setObject(svg, forKeyedSubscript: "svgInput" as NSString)
 
         let script = """

@@ -244,6 +244,8 @@ import UniformTypeIdentifiers
     #expect(vectors.layers[0].fill.contains(CGPoint(x: 2, y: 5)) && !vectors.layers[0].fill.contains(CGPoint(x: 7, y: 5)), "hole")
     #expect(vectors.layers[0].fill.contains(CGPoint(x: 10.5, y: 4.5)), "island in the hole")
     #expect(TraceVectors.parse("<path d=\"M 0 0\"/>") == nil, "needs a size")
+    let alphas = "<svg width=\"4\" height=\"4\"><path fill=\"rgb(9,9,9)\" opacity=\"1\" d=\"M 0 0 L 1 0 Z\"/><path fill=\"rgb(9,9,9)\" opacity=\"0.5\" d=\"M 2 2 L 3 2 Z\"/></svg>"
+    #expect(TraceVectors.parse(alphas)?.layers.map(\.opacity) == [1, 0.5], "same RGB, different alpha: two layers")
     guard let image = vectors.render(pixels: CGSize(width: 40, height: 20), ink: nil, checks: (CGColor(gray: 1, alpha: 1), CGColor(gray: 0.9, alpha: 1))) else { Issue.record("renders"); return }
     #expect(image.width == 40 && image.height == 20)
 }

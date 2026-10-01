@@ -20,6 +20,8 @@ private func blank(_ width: Int, _ height: Int) -> CGImage {
     #expect(StitchLayoutEngine.layout(root: moved, sources: sources, baseID: base.id)?.size == CGSize(width: 1000, height: 1000))
     #expect(row.removingLeaf(row.leafKey(ofSource: square.id)!)?.leafSrcIDs == [base.id])
     #expect(StitchLayoutEngine.exportSize(CGSize(width: 32768, height: 1000.4)) == CGSize(width: 16384, height: 500))
+    // 16000 × 16000 is 256 MP: the area cap halves both sides
+    #expect(StitchLayoutEngine.exportSize(CGSize(width: 16000, height: 16000)) == CGSize(width: 8000, height: 8000))
     #expect(StitchLayoutEngine.batchLayout([base, square, square, base, base])?.size == CGSize(width: 3000, height: 1000))
 }
 

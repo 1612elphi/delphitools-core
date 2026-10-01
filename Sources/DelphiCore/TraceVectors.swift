@@ -54,17 +54,19 @@ public struct TraceVectors: @unchecked Sendable {
             let tag = " " + element[..<end.lowerBound]
             let tagSlice = Substring(tag)
             guard let fill = SVGMarkup.attribute("fill", in: tagSlice), let data = SVGMarkup.attribute("d", in: tagSlice) else { continue }
+            // palette entries can share an RGB and differ in alpha
+            let key = fill + "|" + (SVGMarkup.attribute("opacity", in: tagSlice) ?? "1")
             let slot: Int
-            if let known = index[fill] {
+            if let known = index[key] {
                 slot = known
             } else {
-                var builder = Builder(key: fill)
+                var builder = Builder(key: key)
                 let rgb = fill.drop { !$0.isNumber }.split { !$0.isNumber }.compactMap { UInt8($0) }
                 if rgb.count == 3 { (builder.red, builder.green, builder.blue) = (rgb[0], rgb[1], rgb[2]) }
                 builder.opacity = SVGMarkup.attribute("opacity", in: tagSlice).flatMap(Double.init).map { CGFloat($0) } ?? 1
                 builder.strokeWidth = SVGMarkup.attribute("stroke-width", in: tagSlice).flatMap(Double.init).map { CGFloat($0) } ?? 0
                 slot = builders.count
-                index[fill] = slot
+                index[key] = slot
                 builders.append(builder)
             }
             builders[slot].paths += 1
