@@ -42,4 +42,12 @@ import DelphiCore
     _ = MaskSpec(zoom: 1, offset: .zero, scale: 1)
     _ = MaskSpec()
     _ = TraceSettings()
+    _ = PDFStampEngine.Options()
+    _ = PDFStampEngine.NumberSection(fromPage: 2, style: .romanLower, startAt: 1)
+    _ = PDFCropEngine.Insets(left: 1)
+    _ = ImageToPDFLayout.Options(paperMm: nil, orientation: .auto, fit: .contain, marginMm: 0)
+    _ = PDFOrganiserEngine.PageRef(url: URL(fileURLWithPath: "/a.pdf"), page: 0)
+    _ = PDFRotateCropWriter.Edit()
+    _ = PDFSource(url: URL(fileURLWithPath: "/a.pdf"), name: "a.pdf", pageCount: 1, byteCount: 1)
+    _ = ImpositionConfig()
 }
