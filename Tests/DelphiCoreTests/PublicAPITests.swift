@@ -17,4 +17,6 @@ import DelphiCore
     _ = SymbolPair(top: .text("a"), bottom: .morse(".-"))
     _ = ColourManagement()
     _ = ColourManagement(working: .displayP3, cmykIn: .generic, cmykOut: .gracol2013)
+    _ = PaletteDraft()
+    _ = PaletteDraft(category: .mood, count: 4, seed: DelphiColour(r: 1, g: 0, b: 0))
 }

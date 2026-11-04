@@ -7,7 +7,7 @@ import SwiftUI
 
 /// Unified colour model with manual conversions for all colour spaces.
 /// Uses sRGB as the hub format. Supports Display P3 where available.
-public struct DelphiColour: Equatable, Hashable {
+public struct DelphiColour: Equatable, Hashable, Sendable {
     /// sRGB components 0–1
     public var r: Double
     public var g: Double
@@ -199,6 +199,11 @@ public struct DelphiColour: Equatable, Hashable {
     }
 
     public static func fromOKLAB(l: Double, a: Double, b: Double) -> DelphiColour {
+        let lin = linearRGB(oklab: l, a, b)
+        return fromLinearRGB(lin.r, lin.g, lin.b)
+    }
+
+    private static func linearRGB(oklab l: Double, _ a: Double, _ b: Double) -> (r: Double, g: Double, b: Double) {
         let l_ = l + 0.3963377774 * a + 0.2158037573 * b
         let m_ = l - 0.1055613458 * a - 0.0638541728 * b
         let s_ = l - 0.0894841775 * a - 1.2914855480 * b
@@ -208,7 +213,19 @@ public struct DelphiColour: Equatable, Hashable {
         let lr =  4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc
         let lg = -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc
         let lb = -0.0041960863 * lc - 0.7034186147 * mc + 1.7076147010 * sc
-        return fromLinearRGB(lr, lg, lb)
+        return (lr, lg, lb)
+    }
+
+    /// The most OKLCH chroma inside sRGB at lightness `l` and hue `h`, to about 3e-8.
+    public static func maxChroma(lightness l: Double, hue h: Double) -> Double {
+        let radians = h * .pi / 180
+        var lo = 0.0, hi = 0.5
+        for _ in 0..<24 {
+            let mid = (lo + hi) / 2
+            let lin = linearRGB(oklab: l, mid * cos(radians), mid * sin(radians))
+            if [lin.r, lin.g, lin.b].allSatisfy({ $0 >= -1e-5 && $0 <= 1 + 1e-5 }) { lo = mid } else { hi = mid }
+        }
+        return lo
     }
 
     // MARK: - OKLCH

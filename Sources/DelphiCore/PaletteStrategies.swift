@@ -227,3 +227,216 @@ public enum PaletteStrategies {
         },
     ]
 }
+
+/// A generated palette with its strategy and the columns locked against regenerating. Locks are indices, so removing a
+/// colour shifts the locks above it down.
+public struct PaletteDraft: Sendable {
+    public var category: PaletteCategory
+    public var strategy: PaletteStrategy
+    public var colours: [DelphiColour] = []
+    public var locked: Set<Int> = []
+
+    /// Generated with the first strategy of `category`; a `seed` colour takes the first column, locked.
+    public init(category: PaletteCategory = .random, count: Int = 5, seed: DelphiColour? = nil) {
+        self.category = seed == nil ? category : .colourTheory
+        strategy = PaletteStrategies.strategies(for: self.category)[0]
+        if let seed {
+            colours = [seed]
+            locked = [0]
+        }
+        generate(count: count)
+    }
+
+    public static let counts = 3...12
+
+    /// The hue of the first locked colour, for the colour-theory strategies.
+    private var lockedHue: Double? {
+        locked.min().flatMap { colours.indices.contains($0) ? colours[$0].oklch.h : nil }
+    }
+
+    /// New colours from the strategy; locked columns keep theirs.
+    public mutating func generate(count: Int? = nil) {
+        let count = count ?? colours.count
+        var fresh = strategy.generator(count, lockedHue)
+        for index in locked where index < min(colours.count, fresh.count) { fresh[index] = colours[index] }
+        colours = fresh
+        locked = locked.filter { $0 < count }
+    }
+
+    public mutating func select(_ category: PaletteCategory) {
+        self.category = category
+        select(PaletteStrategies.strategies(for: category)[0])
+    }
+
+    public mutating func select(_ strategy: PaletteStrategy) {
+        self.strategy = strategy
+        category = strategy.category
+        generate()
+    }
+
+    /// Adds colours at the end without touching the rest, or drops them from the end.
+    public mutating func resize(to target: Int) {
+        let target = min(max(target, Self.counts.lowerBound), Self.counts.upperBound)
+        guard target > colours.count else {
+            colours.removeLast(colours.count - target)
+            locked = locked.filter { $0 < target }
+            return
+        }
+        colours += strategy.generator(target - colours.count, lockedHue)
+    }
+
+    public mutating func remove(at index: Int) {
+        guard colours.indices.contains(index), colours.count > Self.counts.lowerBound else { return }
+        colours.remove(at: index)
+        locked = Set(locked.compactMap { $0 == index ? nil : $0 > index ? $0 - 1 : $0 })
+    }
+
+    public mutating func toggleLock(_ index: Int) {
+        if locked.remove(index) == nil { locked.insert(index) }
+    }
+
+    /// A colour set by hand, locked.
+    public mutating func set(_ colour: DelphiColour, at index: Int) {
+        guard colours.indices.contains(index) else { return }
+        colours[index] = colour
+        locked.insert(index)
+    }
+
+    #if DEBUG
+    public static func selfCheck() {
+        var draft = PaletteDraft()
+        let before = draft.colours
+        assert(before.count == 5)
+        draft.locked = [1]
+        draft.resize(to: 8)
+        assert(draft.colours.count == 8 && Array(draft.colours.prefix(5)) == before && draft.locked == [1])
+        draft.resize(to: 4)
+        assert(draft.colours == Array(before.prefix(4)) && draft.locked == [1])
+        draft.resize(to: 1)
+        assert(draft.colours.count == 3)
+        draft.locked = [0, 2]
+        draft.remove(at: 1)
+        assert(draft.colours.count == 3)
+        draft.resize(to: 5)
+        draft.remove(at: 1)
+        assert(draft.colours.count == 4 && draft.locked == [0, 1])
+        draft.generate()
+        assert(draft.colours[0] == before[0] && draft.colours[1] == before[2])
+        let seed = DelphiColour(r: 1, g: 0, b: 0)
+        let seeded = PaletteDraft(seed: seed)
+        assert(seeded.category == .colourTheory && seeded.colours[0] == seed && seeded.locked == [0] && seeded.colours.count == 5)
+        draft.select(.mood)
+        assert(draft.strategy.category == .mood && draft.colours.count == 4)
+        assert(PaletteFiles.ase(name: "a", colours: [seed]).prefix(4) == Data("ASEF".utf8))
+        let swatches = PaletteFiles.procreate(name: "a", colours: [seed])
+        assert(swatches.prefix(4) == Data([0x50, 0x4B, 0x03, 0x04]) && PaletteFiles.crc32(Data("123456789".utf8)) == 0xCBF4_3926)
+    }
+    #endif
+}
+
+/// Palette files: Adobe Swatch Exchange (.ase) and Procreate Swatches (.swatches, a zip of Swatches.json).
+public enum PaletteFiles {
+    public static func css(name: String, colours: [DelphiColour]) -> String {
+        (["/* \(name) */"] + colours.enumerated().map { "--palette-\($0.offset + 1): \($0.element.hex);" }).joined(separator: "\n")
+    }
+
+    public static func ase(name: String, colours: [DelphiColour]) -> Data {
+        var data = Data("ASEF".utf8)
+        data.big(UInt16(1))
+        data.big(UInt16(0))
+        // group start, colours, group end
+        data.big(UInt32(2 + colours.count))
+        let group = utf16(name)
+        data.big(UInt16(0xC001))
+        data.big(UInt32(group.count))
+        data.append(group)
+        for colour in colours {
+            let label = utf16(colour.colourName)
+            data.big(UInt16(0x0001))
+            // name, model, three floats, type
+            data.big(UInt32(label.count + 4 + 12 + 2))
+            data.append(label)
+            data.append(Data("RGB ".utf8))
+            for value in [colour.r, colour.g, colour.b] { data.big(Float32(min(max(value, 0), 1)).bitPattern) }
+            // process colour
+            data.big(UInt16(2))
+        }
+        data.big(UInt16(0xC002))
+        data.big(UInt32(0))
+        return data
+    }
+
+    public static func procreate(name: String, colours: [DelphiColour]) -> Data {
+        // procreate holds 30
+        let swatches = colours.prefix(30).map { colour -> [String: Any] in
+            let (r, g, b) = (min(max(colour.r, 0), 1), min(max(colour.g, 0), 1), min(max(colour.b, 0), 1))
+            let most = max(r, g, b), delta = most - min(r, g, b)
+            var hue = 0.0
+            if delta > 0 {
+                hue = most == r ? (g - b) / delta : most == g ? (b - r) / delta + 2 : (r - g) / delta + 4
+                hue = (hue / 6).truncatingRemainder(dividingBy: 1)
+                if hue < 0 { hue += 1 }
+            }
+            return ["hue": hue, "saturation": most > 0 ? delta / most : 0, "brightness": most, "alpha": 1, "colorSpace": 0]
+        }
+        let json = (try? JSONSerialization.data(withJSONObject: [["name": name, "swatches": swatches]])) ?? Data()
+        return zip(filename: "Swatches.json", contents: json)
+    }
+
+    // length-prefixed, nul-terminated
+    private static func utf16(_ string: String) -> Data {
+        var data = Data()
+        let units = Array(string.utf16)
+        data.big(UInt16(units.count + 1))
+        units.forEach { data.big($0) }
+        data.big(UInt16(0))
+        return data
+    }
+
+    /// One stored file: local header, central directory, end record.
+    private static func zip(filename: String, contents: Data) -> Data {
+        let name = Data(filename.utf8)
+        let crc = crc32(contents), size = UInt32(contents.count)
+        var zip = Data([0x50, 0x4B, 0x03, 0x04])
+        for value: UInt16 in [20, 0, 0, 0, 0] { zip.little(value) }
+        for value in [crc, size, size] { zip.little(value) }
+        zip.little(UInt16(name.count))
+        zip.little(UInt16(0))
+        zip.append(name)
+        zip.append(contents)
+        let directory = UInt32(zip.count)
+        zip.append(contentsOf: [0x50, 0x4B, 0x01, 0x02])
+        for value: UInt16 in [20, 20, 0, 0, 0, 0] { zip.little(value) }
+        for value in [crc, size, size] { zip.little(value) }
+        for value: UInt16 in [UInt16(name.count), 0, 0, 0, 0] { zip.little(value) }
+        zip.little(UInt32(0))
+        zip.little(UInt32(0))
+        zip.append(name)
+        let directorySize = UInt32(zip.count) - directory
+        zip.append(contentsOf: [0x50, 0x4B, 0x05, 0x06])
+        for value: UInt16 in [0, 0, 1, 1] { zip.little(value) }
+        zip.little(directorySize)
+        zip.little(directory)
+        zip.little(UInt16(0))
+        return zip
+    }
+
+    static func crc32(_ data: Data) -> UInt32 {
+        var crc: UInt32 = 0xFFFF_FFFF
+        for byte in data {
+            crc ^= UInt32(byte)
+            for _ in 0..<8 { crc = (crc >> 1) ^ (crc & 1 != 0 ? 0xEDB8_8320 : 0) }
+        }
+        return crc ^ 0xFFFF_FFFF
+    }
+}
+
+private extension Data {
+    mutating func big<T: FixedWidthInteger>(_ value: T) {
+        Swift.withUnsafeBytes(of: value.bigEndian) { append(contentsOf: $0) }
+    }
+
+    mutating func little<T: FixedWidthInteger>(_ value: T) {
+        Swift.withUnsafeBytes(of: value.littleEndian) { append(contentsOf: $0) }
+    }
+}
