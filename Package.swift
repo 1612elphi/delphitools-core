@@ -13,6 +13,7 @@ let package = Package(
             name: "DelphiCore",
             resources: [
                 .copy("Resources/colour-names.json"),
+                .copy("Resources/tailwind-cheatsheet.json"),
                 .copy("Resources/nerdamer-all.min.js"),
                 .copy("Resources/svgo.browser.js"),
                 .copy("Resources/imagetracer_v1.2.6.js"),

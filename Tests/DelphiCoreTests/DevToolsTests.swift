@@ -11,6 +11,14 @@ import Testing
     CronEngine.selfCheck()
     HTTPStatusTable.selfCheck()
     RequestBuilderEngine.selfCheck()
+    CipherEngine.selfCheck()
+    TailwindCheatsheet.selfCheck()
+    EncoderEngine.selfCheck()
+    BaseNumber.selfCheck()
+    BarcodeMatrixExtractor.selfCheck()
+    MorseEngine.selfCheck()
+    RegexTesterEngine.selfCheck()
+    BitRegroup.selfCheck()
 }
 
 @Test func textDiff() {
