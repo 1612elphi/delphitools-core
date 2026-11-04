@@ -307,3 +307,11 @@ import UniformTypeIdentifiers
     #expect(source.pixels == (20, 40) && source.stem.hasPrefix("split-"))
     #expect(source.image.width == 15 && source.image.height == 30 && source.preview.height == 10)
 }
+
+@Test func imageToolEngines() {
+    ImageCompressEngine.selfCheck()
+    PNGChunkStrip.selfCheck()
+    PlaceholderSpec.selfCheck()
+    FaviconEngine.selfCheck()
+    Base64Image.selfCheck()
+}

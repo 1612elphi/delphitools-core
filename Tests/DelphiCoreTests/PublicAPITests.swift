@@ -36,4 +36,5 @@ import DelphiCore
     _ = UnicodeBlocks.Geometry(sections: [], width: 400)
     _ = FontFile.Metrics(ascent: 0.8, capHeight: 0.7, xHeight: 0.5, descent: 0.2, unitsPerEm: 1000)
     _ = try? FontFile(data: Data(), fileName: "a.ttf")
+    _ = PlaceholderSpec(width: 1, height: 1, background: "#000000", foreground: "#ffffff", text: "")
 }
