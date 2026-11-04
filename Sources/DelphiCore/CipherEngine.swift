@@ -53,6 +53,8 @@ public nonisolated struct CipherParams: Sendable {
     public var affineA = 5
     public var affineB = 8
     public var rails = 3
+
+    public init() {}
 }
 
 public nonisolated struct CipherCandidate: Identifiable, Sendable {
