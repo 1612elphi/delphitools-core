@@ -48,6 +48,11 @@ public nonisolated enum MorseEngine {
     public struct Timing {
         public let on: Bool
         public let ms: Double
+
+        public init(on: Bool, ms: Double) {
+            self.on = on
+            self.ms = ms
+        }
     }
 
     // paris timing, 50 units

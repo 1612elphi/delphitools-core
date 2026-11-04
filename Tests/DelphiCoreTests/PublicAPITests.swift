@@ -18,5 +18,8 @@ import DelphiCore
     _ = ColourManagement()
     _ = ColourManagement(working: .displayP3, cmykIn: .generic, cmykOut: .gracol2013)
     _ = PaletteDraft()
+    _ = ShavianTransliteration()
+    _ = ShavianEngine()
+    _ = MorseEngine.Timing(on: false, ms: 1)
     _ = PaletteDraft(category: .mood, count: 4, seed: DelphiColour(r: 1, g: 0, b: 0))
 }
