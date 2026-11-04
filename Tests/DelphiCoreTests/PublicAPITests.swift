@@ -50,4 +50,9 @@ import DelphiCore
     _ = PDFRotateCropWriter.Edit()
     _ = PDFSource(url: URL(fileURLWithPath: "/a.pdf"), name: "a.pdf", pageCount: 1, byteCount: 1)
     _ = ImpositionConfig()
+    _ = SocialCrop()
+    _ = MatteSpec()
+    _ = MatteSpec.RGB(r: 1, g: 2, b: 3)
+    _ = CropRatio(id: "a", name: "A", widthRatio: 1, heightRatio: 1)
+    _ = CropPlatform(id: "a", name: "A", ratios: [])
 }
