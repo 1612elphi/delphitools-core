@@ -26,4 +26,5 @@ import DelphiCore
     _ = SciCalcSyntax.Piece(text: ")", kind: .ghost)
     _ = UnitConverterTable.Scale(unit: UnitLength.meters, symbol: "m")
     _ = UnitConverterTable.Scale(UnitConverterTable.Entry(id: "m", label: "Metres", dimension: UnitLength.meters))
+    _ = WordCount("a")
 }
