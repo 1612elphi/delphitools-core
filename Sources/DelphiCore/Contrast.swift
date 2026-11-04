@@ -40,3 +40,36 @@ extension DelphiColour {
         return self
     }
 }
+
+/// WCAG 2.2 contrast levels (1.4.3, 1.4.6, 1.4.11) and the ratio as text.
+public enum ContrastRatio: Sendable {
+    /// AA for large text and for controls.
+    public static let aaLarge = 3.0
+    /// AA for normal text, AAA for large text.
+    public static let aa = 4.5
+    /// AAA for normal text.
+    public static let aaa = 7.0
+
+    /// Not rounded up: 4.499 shows 4.49, which fails 4.5 as the lamps do. No trailing zeros.
+    public static func figure(_ ratio: Double) -> String {
+        var text = String(format: "%.2f", (ratio * 100 + 1e-9).rounded(.down) / 100)
+        while text.contains("."), text.hasSuffix("0") || text.hasSuffix(".") { text.removeLast() }
+        return text
+    }
+
+    #if DEBUG
+    public static func selfCheck() {
+        assert(figure(4.499) == "4.49")
+        assert(figure(4.5) == "4.5")
+        assert(figure(21) == "21")
+        assert(figure(7.001) == "7")
+        // text matches lamp threshold
+        assert((figure(4.4999) == "4.5") == (4.4999 >= aa))
+        let white = DelphiColour(r: 1, g: 1, b: 1)
+        assert(figure(DelphiColour.contrastRatio(white, DelphiColour(r: 0, g: 0, b: 0))) == "21")
+        let grey = DelphiColour.fromHex("777777")!
+        let fixed = grey.adjusted(toContrast: aa, against: white)
+        assert(DelphiColour.contrastRatio(fixed, white) >= aa && fixed.hsl.l < grey.hsl.l)
+    }
+    #endif
+}

@@ -15,4 +15,6 @@ import DelphiCore
     _ = TextScratchpadViewModel()
     _ = TextScratchpadViewModel(text: "a")
     _ = SymbolPair(top: .text("a"), bottom: .morse(".-"))
+    _ = ColourManagement()
+    _ = ColourManagement(working: .displayP3, cmykIn: .generic, cmykOut: .gracol2013)
 }
