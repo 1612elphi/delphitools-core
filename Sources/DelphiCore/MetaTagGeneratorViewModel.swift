@@ -15,6 +15,8 @@ public final class MetaTagGeneratorViewModel {
     public var ogType: String = "website"
     public var twitterCard: String = "summary"
 
+    public init() {}
+
     public var generatedHTML: String {
         var lines: [String] = []
 
