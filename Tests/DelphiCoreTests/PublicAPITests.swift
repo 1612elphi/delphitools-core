@@ -27,4 +27,6 @@ import DelphiCore
     _ = UnitConverterTable.Scale(unit: UnitLength.meters, symbol: "m")
     _ = UnitConverterTable.Scale(UnitConverterTable.Entry(id: "m", label: "Metres", dimension: UnitLength.meters))
     _ = WordCount("a")
+    _ = PaperPick(series: "iso-a", size: PaperSize(id: "A4", name: "A4", widthMM: 210, heightMM: 297))
+    _ = PaperSeriesData(id: "x", name: "X", sizes: [])
 }

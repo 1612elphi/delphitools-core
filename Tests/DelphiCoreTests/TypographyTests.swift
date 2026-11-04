@@ -5,4 +5,5 @@ import Testing
 @Test func typographyEngines() {
     TypeUnits.selfCheck()
     WordCount.selfCheck()
+    PaperQuery.selfCheck()
 }
