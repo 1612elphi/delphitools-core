@@ -489,7 +489,7 @@ public nonisolated enum ImposedPDFWriter {
             ctx.clip(to: CGRect(x: px, y: py, width: pw, height: ph))
             ctx.translateBy(x: px + pw / 2, y: py + ph / 2)
             if p.rotation != 0 { ctx.rotate(by: Double(p.rotation) * .pi / 180.0) }
-            let pageRect = page.bounds(for: .mediaBox)
+            let pageRect = PDFDocumentLoader.displaySize(page)
             let fitScale: Double = switch config.scaling {
             case .fit: min(pw / pageRect.width, ph / pageRect.height)
             case .fill: max(pw / pageRect.width, ph / pageRect.height)
@@ -499,7 +499,7 @@ public nonisolated enum ImposedPDFWriter {
             ctx.scaleBy(x: 1, y: -1)
             ctx.translateBy(x: -pageRect.width * fitScale / 2, y: -pageRect.height * fitScale / 2)
             ctx.scaleBy(x: fitScale, y: fitScale)
-            if let cgPage = page.pageRef { ctx.drawPDFPage(cgPage) }
+            PDFDocumentLoader.drawPage(page, in: ctx)
             ctx.restoreGState()
         }
         if config.cropMarks { drawCropMarks(ctx, placements, scale) }

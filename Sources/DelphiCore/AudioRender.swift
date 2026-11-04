@@ -225,11 +225,16 @@ public struct RecordedTake: Sendable {
         } catch {
             try? FileManager.default.removeItem(at: url)
             let wav = url.deletingPathExtension().appendingPathExtension("wav")
-            try? write(to: wav, settings: [
-                AVFormatIDKey: Int(kAudioFormatLinearPCM), AVSampleRateKey: rate, AVNumberOfChannelsKey: 1,
-                AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false,
-            ])
-            return FileManager.default.fileExists(atPath: wav.path) ? wav : nil
+            do {
+                try write(to: wav, settings: [
+                    AVFormatIDKey: Int(kAudioFormatLinearPCM), AVSampleRateKey: rate, AVNumberOfChannelsKey: 1,
+                    AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false,
+                ])
+                return wav
+            } catch {
+                try? FileManager.default.removeItem(at: wav)
+                return nil
+            }
         }
     }
 
@@ -237,7 +242,7 @@ public struct RecordedTake: Sendable {
         let file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatInt16, interleaved: true)
         let chunk = AVAudioFrameCount(rate)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: chunk),
-              let data = buffer.int16ChannelData else { return }
+              let data = buffer.int16ChannelData else { throw CocoaError(.fileWriteUnknown) }
         var start = 0
         while start < samples.count {
             let count = min(Int(chunk), samples.count - start)

@@ -432,8 +432,10 @@ public nonisolated enum ScrollEngine {
             slices = ScrollEngine.slices(geometry)
         }
 
-        public func slides() -> [CGImage] {
-            slices.indices.compactMap { Task.isCancelled ? nil : slide($0) }
+        /// Every slide, or nil if one fails or the task is cancelled, so indices match `slide(_:)`.
+        public func slides() -> [CGImage]? {
+            let all = slices.indices.map { Task.isCancelled ? nil : slide($0) }
+            return all.contains(nil) ? nil : all.compactMap { $0 }
         }
 
         public func slide(_ index: Int) -> CGImage? {

@@ -67,8 +67,10 @@ public enum SubtitleTranscriber: Sendable {
         do {
             try await session.export(to: output, as: .m4a)
         } catch is CancellationError {
+            try? FileManager.default.removeItem(at: output)
             throw CancellationError()
         } catch {
+            try? FileManager.default.removeItem(at: output)
             throw Failure.unreadable
         }
         return (output, true)
