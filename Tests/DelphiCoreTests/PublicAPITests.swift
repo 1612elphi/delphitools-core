@@ -55,4 +55,10 @@ import DelphiCore
     _ = MatteSpec.RGB(r: 1, g: 2, b: 3)
     _ = CropRatio(id: "a", name: "A", widthRatio: 1, heightRatio: 1)
     _ = CropPlatform(id: "a", name: "A", ratios: [])
+    _ = Timecode.Parts(h: 0, m: 0, s: 1, f: 0)
+    _ = AudioDSP.Peaks(min: [0], max: [0])
+    _ = RecordedTake(rate: 48000)
+    _ = MediaProbe.Row(label: "a", value: "b")
+    _ = MediaProbe.Section(title: "a", rows: [])
+    _ = MediaProbe.Tags()
 }
