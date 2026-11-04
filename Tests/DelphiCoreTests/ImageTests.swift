@@ -321,3 +321,11 @@ import UniformTypeIdentifiers
     MaskSpec.selfCheck()
     TraceSettings.selfCheck()
 }
+
+@Test func alphaTrimBounds() throws {
+    let context = try #require(CGContext(data: nil, width: 20, height: 10, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+    context.setFillColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+    context.fill(CGRect(x: 3, y: 2, width: 5, height: 4))
+    let image = try #require(context.makeImage())
+    #expect(AlphaTrimmer.boundingRect(of: image) == CGRect(x: 3, y: 4, width: 5, height: 4))
+}

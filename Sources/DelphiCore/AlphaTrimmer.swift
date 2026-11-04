@@ -17,9 +17,8 @@ public enum AlphaTrimmer {
         // normalise to rgba8 layout
         let bytesPerPixel = 4
         let bytesPerRow = width * bytesPerPixel
-        var pixels = [UInt8](repeating: 0, count: width * height * bytesPerPixel)
         guard let context = CGContext(
-            data: &pixels,
+            data: nil,
             width: width,
             height: height,
             bitsPerComponent: 8,
@@ -30,6 +29,8 @@ public enum AlphaTrimmer {
             return nil
         }
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let data = context.data else { return nil }
+        let pixels = data.assumingMemoryBound(to: UInt8.self)
 
         var minX = width
         var minY = height
@@ -37,7 +38,7 @@ public enum AlphaTrimmer {
         var maxY = -1
 
         for y in 0..<height {
-            let rowOffset = y * bytesPerRow
+            let rowOffset = y * context.bytesPerRow
             for x in 0..<width {
                 let alpha = pixels[rowOffset + x * bytesPerPixel + 3]
                 if alpha > threshold {
