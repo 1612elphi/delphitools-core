@@ -22,4 +22,6 @@ import DelphiCore
     _ = ShavianEngine()
     _ = MorseEngine.Timing(on: false, ms: 1)
     _ = PaletteDraft(category: .mood, count: 4, seed: DelphiColour(r: 1, g: 0, b: 0))
+    _ = UnitConverterTable.Scale(unit: UnitLength.meters, symbol: "m")
+    _ = UnitConverterTable.Scale(UnitConverterTable.Entry(id: "m", label: "Metres", dimension: UnitLength.meters))
 }
