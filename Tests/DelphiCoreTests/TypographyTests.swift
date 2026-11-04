@@ -9,4 +9,7 @@ import Testing
     LargeTypeEngine.selfCheck()
     LargeTypeLayout.selfCheck()
     DocConvert.selfCheck()
+    DocConvert.Ledger.selfCheck()
+    UnicodeBlocks.selfCheck()
+    FontFile.selfCheck()
 }

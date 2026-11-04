@@ -20,6 +20,7 @@ let package = Package(
                 .copy("Resources/svgo.browser.js"),
                 .copy("Resources/imagetracer_v1.2.6.js"),
                 .copy("Resources/world-land.json"),
+                .copy("Resources/unicode-blocks.json"),
             ]
         ),
         .testTarget(

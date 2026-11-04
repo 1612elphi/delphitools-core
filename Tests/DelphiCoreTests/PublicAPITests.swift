@@ -31,4 +31,9 @@ import DelphiCore
     _ = PaperSeriesData(id: "x", name: "X", sizes: [])
     _ = DocConvert.Style(family: .serif, lineHeight: 1.5, text: .init(0, 0, 0), background: .init(1, 1, 1))
     _ = DocConvert.Inline(text: "a", bold: true)
+    _ = UnicodeBlocks.Block(name: "A", range: 0x41...0x5A)
+    _ = UnicodeBlocks.Section(title: nil, range: 0x20...0x7F)
+    _ = UnicodeBlocks.Geometry(sections: [], width: 400)
+    _ = FontFile.Metrics(ascent: 0.8, capHeight: 0.7, xHeight: 0.5, descent: 0.2, unitsPerEm: 1000)
+    _ = try? FontFile(data: Data(), fileName: "a.ttf")
 }
