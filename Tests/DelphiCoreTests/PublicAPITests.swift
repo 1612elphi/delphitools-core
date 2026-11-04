@@ -61,4 +61,8 @@ import DelphiCore
     _ = MediaProbe.Row(label: "a", value: "b")
     _ = MediaProbe.Section(title: "a", rows: [])
     _ = MediaProbe.Tags()
+    _ = SubtitleCue(start: 0, end: 1, text: "a")
+    _ = SubtitleWord(text: "a", start: 0, end: 1)
+    _ = MediaExport.Container(source: URL(fileURLWithPath: "/a.mov"))
+    _ = SubtitleBurnStyle()
 }
