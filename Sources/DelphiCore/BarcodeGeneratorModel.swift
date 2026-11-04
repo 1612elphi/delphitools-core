@@ -115,6 +115,8 @@ public final class BarcodeGeneratorViewModel {
     public var content = ""
     public var barcodeType: BarcodeType = .code128
 
+    public init() {}
+
     private let ciContext = CIContext()
 }
 
