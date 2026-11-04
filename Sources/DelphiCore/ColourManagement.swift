@@ -1,5 +1,4 @@
 import CoreGraphics
-import DelphiCore
 import Foundation
 import simd
 
@@ -117,8 +116,6 @@ public struct ColourManagement: Equatable, Sendable {
         (self.working, self.cmykIn, self.cmykOut) = (working, cmykIn, cmykOut)
     }
 
-    // MARK: Settings
-
     private static let keys = (working: "colourManagementWorking", cmykIn: "colourManagementCMYKIn", cmykOut: "colourManagementCMYKOut")
 
     public static var stored: ColourManagement {
@@ -137,8 +134,6 @@ public struct ColourManagement: Equatable, Sendable {
             defaults.set(newValue.cmykOut.rawValue, forKey: keys.cmykOut)
         }
     }
-
-    // MARK: RGB and XYZ
 
     public func xyz(_ colour: DelphiColour) -> SIMD3<Double> {
         working.toXYZ * SIMD3(working.linear(colour.r), working.linear(colour.g), working.linear(colour.b))
@@ -163,8 +158,6 @@ public struct ColourManagement: Equatable, Sendable {
         let rgb = [colour.r, colour.g, colour.b].map { CGFloat(min(max($0, 0), 1)) }
         return CGColor(colorSpace: working.colourSpace, components: rgb + [1])!
     }
-
-    // MARK: CIE and OK
 
     private static let d65 = SIMD3(0.95047, 1.0, 1.08883)
 
@@ -223,8 +216,6 @@ public struct ColourManagement: Equatable, Sendable {
         let delta = 6.0 / 29
         return t > delta ? t * t * t : 3 * delta * delta * (t - 4.0 / 29)
     }
-
-    // MARK: CMYK
 
     // bpc shifts cyan (27.1)
     /// Ink coverage 0...1 through the output profile; nil when the profile is missing.
