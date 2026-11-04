@@ -6,4 +6,6 @@ import Testing
     TypeUnits.selfCheck()
     WordCount.selfCheck()
     PaperQuery.selfCheck()
+    LargeTypeEngine.selfCheck()
+    LargeTypeLayout.selfCheck()
 }
