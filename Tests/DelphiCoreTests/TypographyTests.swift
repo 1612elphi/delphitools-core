@@ -8,4 +8,5 @@ import Testing
     PaperQuery.selfCheck()
     LargeTypeEngine.selfCheck()
     LargeTypeLayout.selfCheck()
+    DocConvert.selfCheck()
 }

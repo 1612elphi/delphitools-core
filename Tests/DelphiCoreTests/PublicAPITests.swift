@@ -29,4 +29,6 @@ import DelphiCore
     _ = WordCount("a")
     _ = PaperPick(series: "iso-a", size: PaperSize(id: "A4", name: "A4", widthMM: 210, heightMM: 297))
     _ = PaperSeriesData(id: "x", name: "X", sizes: [])
+    _ = DocConvert.Style(family: .serif, lineHeight: 1.5, text: .init(0, 0, 0), background: .init(1, 1, 1))
+    _ = DocConvert.Inline(text: "a", bold: true)
 }
