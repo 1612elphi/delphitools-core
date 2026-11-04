@@ -318,4 +318,5 @@ import UniformTypeIdentifiers
     ClipMargins.selfCheck()
     ImageSplitEngine.selfCheck()
     DeskewGrab.selfCheck()
+    MaskSpec.selfCheck()
 }

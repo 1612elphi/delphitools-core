@@ -385,3 +385,158 @@ public final class MaskRandom {
         return Double(t ^ (t >> 14)) / 4_294_967_296
     }
 }
+
+/// How the image sits in the mask's square and how large the square is exported, as the web tool's `paint()`.
+public struct MaskSpec: Equatable, Sendable {
+    public static let zoomRange: ClosedRange<CGFloat> = 0.1...8
+    // ponytail: 4096 side, as the SwiftUI tool; the web allows 8192
+    public static let maxSide = 4096
+    public static let emptySide = 1024
+
+    public var zoom: CGFloat = 1
+    /// In sides of the square.
+    public var offset = CGPoint.zero
+    public var scale: CGFloat = 1
+
+    public init(zoom: CGFloat = 1, offset: CGPoint = .zero, scale: CGFloat = 1) {
+        (self.zoom, self.offset, self.scale) = (zoom, offset, scale)
+    }
+
+    /// Grey that fills the square where the image does not reach.
+    public static var placeholder: CGColor { CGColor(srgbRed: 0.604, green: 0.604, blue: 0.604, alpha: 1) }
+
+    public func side(for pixels: CGSize?) -> Int {
+        let base = pixels.map { min($0.width, $0.height) / zoom } ?? CGFloat(Self.emptySide)
+        return max(16, min(Self.maxSide, Int((base * scale).rounded())))
+    }
+
+    /// The image's frame in a square of `side`, covering it at zoom 1; top-left origin.
+    public func imageFrame(_ pixels: CGSize, side: CGFloat) -> CGRect {
+        guard pixels.width > 0, pixels.height > 0 else { return CGRect(x: 0, y: 0, width: side, height: side) }
+        let cover = max(side / pixels.width, side / pixels.height) * zoom
+        let size = CGSize(width: pixels.width * cover, height: pixels.height * cover)
+        return CGRect(x: (side - size.width) / 2 + offset.x * side, y: (side - size.height) / 2 + offset.y * side,
+                      width: size.width, height: size.height)
+    }
+
+    public enum Cut: @unchecked Sendable {
+        /// In a 0...100 box, top-left origin.
+        case path(CGPath)
+        /// Device grey, no alpha, top row first: white keeps.
+        case mask(CGImage)
+    }
+
+    /// The image cut to the shape in a square of `side` pixels, transparent outside it.
+    public func render(_ image: CGImage?, cut: Cut, side: Int) -> CGImage? {
+        let length = CGFloat(side)
+        let square = CGRect(x: 0, y: 0, width: length, height: length)
+        guard side > 0, let cg = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
+                                           space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                           bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        // top-left origin
+        cg.translateBy(x: 0, y: length)
+        cg.scaleBy(x: 1, y: -1)
+        switch cut {
+        case .path(let path):
+            var toSquare = CGAffineTransform(scaleX: length / 100, y: length / 100)
+            if let scaled = path.copy(using: &toSquare) {
+                cg.addPath(scaled)
+                cg.clip()
+            }
+        case .mask(let grey):
+            // masks draw bottom-up
+            cg.translateBy(x: 0, y: length)
+            cg.scaleBy(x: 1, y: -1)
+            cg.clip(to: square, mask: grey)
+            cg.scaleBy(x: 1, y: -1)
+            cg.translateBy(x: 0, y: -length)
+        }
+        let frame = image.map { imageFrame(CGSize(width: $0.width, height: $0.height), side: length) }
+        if !(frame?.contains(square) ?? false) {
+            cg.setFillColor(Self.placeholder)
+            cg.fill(square)
+        }
+        if let image, let frame {
+            cg.interpolationQuality = .high
+            cg.saveGState()
+            cg.translateBy(x: 0, y: frame.maxY + frame.minY)
+            cg.scaleBy(x: 1, y: -1)
+            cg.draw(image, in: frame)
+            cg.restoreGState()
+        }
+        return cg.makeImage()
+    }
+
+    /// A grey mask of `side` pixels from the alpha of `image` drawn to fit: painted is white, empty is black.
+    public static func greyMask(alphaOf image: CGImage, side: Int) -> CGImage? {
+        guard side > 0, let rgba = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+                                             space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        let size = CGSize(width: image.width, height: image.height)
+        let scale = min(CGFloat(side) / max(size.width, 1), CGFloat(side) / max(size.height, 1))
+        let fitted = CGSize(width: size.width * scale, height: size.height * scale)
+        rgba.interpolationQuality = .high
+        rgba.draw(image, in: CGRect(x: (CGFloat(side) - fitted.width) / 2, y: (CGFloat(side) - fitted.height) / 2,
+                                    width: fitted.width, height: fitted.height))
+        guard let data = rgba.data?.assumingMemoryBound(to: UInt8.self) else { return nil }
+        // bitmap memory is top row first
+        let bytes = Data((0..<side * side).map { data[$0 * 4 + 3] })
+        guard let provider = CGDataProvider(data: bytes as CFData) else { return nil }
+        return CGImage(width: side, height: side, bitsPerComponent: 8, bitsPerPixel: 8, bytesPerRow: side,
+                       space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+                       provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+    }
+
+    #if DEBUG
+    public static func selfCheck() {
+        var spec = MaskSpec()
+        assert(spec.side(for: nil) == 1024 && spec.side(for: CGSize(width: 3000, height: 2000)) == 2000)
+        spec.zoom = 2
+        spec.scale = 3
+        assert(spec.side(for: CGSize(width: 3000, height: 2000)) == 3000)
+        spec.scale = 0.5
+        spec.zoom = 400
+        assert(spec.side(for: CGSize(width: 3000, height: 2000)) == 16, "floor")
+        spec = MaskSpec(zoom: 1, offset: CGPoint(x: 0.25, y: 0), scale: 1)
+        assert(spec.imageFrame(CGSize(width: 2, height: 1), side: 100) == CGRect(x: -25, y: 0, width: 200, height: 100))
+
+        guard let paint = CGContext(data: nil, width: 10, height: 10, bitsPerComponent: 8, bytesPerRow: 0,
+                                    space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return assertionFailure("context") }
+        paint.setFillColor(CGColor(srgbRed: 1, green: 0, blue: 0, alpha: 1))
+        paint.fill(CGRect(x: 0, y: 0, width: 10, height: 10))
+        let red = paint.makeImage()
+        let circle = CGPath(ellipseIn: CGRect(x: 0, y: 0, width: 100, height: 100), transform: nil)
+        spec = MaskSpec(zoom: 0.5, offset: .zero, scale: 1)
+        guard let out = spec.render(red, cut: .path(circle), side: 100),
+              let data = out.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else { return assertionFailure("render") }
+        assert(out.width == 100 && out.height == 100)
+        let alpha = { (x: Int, y: Int) in Int(bytes[y * out.bytesPerRow + x * 4 + 3]) }
+        let channels = { (x: Int, y: Int) in (0..<3).map { Int(bytes[y * out.bytesPerRow + x * 4 + $0]) } }
+        assert(alpha(1, 1) == 0, "corner outside the circle is clear")
+        assert(alpha(50, 50) == 255 && channels(50, 50).filter { $0 > 200 }.count == 1, "centre is the image")
+        assert(alpha(50, 10) == 255 && channels(50, 10).allSatisfy { (140...170).contains($0) }, "grey inside the circle past the image")
+
+        guard let ring = CGContext(data: nil, width: 8, height: 8, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceGray(),
+                                   bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return assertionFailure("mask") }
+        ring.setFillColor(gray: 1, alpha: 1)
+        // y-up: 4...8 is top
+        ring.fill(CGRect(x: 0, y: 0, width: 4, height: 8))
+        ring.setFillColor(gray: 0, alpha: 1)
+        ring.fill(CGRect(x: 0, y: 6, width: 2, height: 2))
+        guard let grey = ring.makeImage(), let cut = spec.render(red, cut: .mask(grey), side: 80),
+              let cutData = cut.dataProvider?.data, let cutBytes = CFDataGetBytePtr(cutData) else { return assertionFailure("mask render") }
+        let cutAlpha = { (x: Int, y: Int) in Int(cutBytes[y * cut.bytesPerRow + x * 4 + 3]) }
+        assert(cutAlpha(30, 60) == 255, "kept: left, lower")
+        assert(cutAlpha(60, 40) == 0, "cut: right half")
+        assert(cutAlpha(8, 8) == 0 && cutAlpha(30, 8) == 255, "the hole is at the top left, not flipped")
+
+        // left half painted, top-left origin kept
+        paint.clear(CGRect(x: 0, y: 0, width: 10, height: 10))
+        paint.fill(CGRect(x: 0, y: 0, width: 5, height: 10))
+        guard let half = paint.makeImage().flatMap({ greyMask(alphaOf: $0, side: 10) }),
+              let maskData = half.dataProvider?.data, let maskBytes = CFDataGetBytePtr(maskData) else { return assertionFailure("grey mask") }
+        assert(maskBytes[2] == 255 && maskBytes[7] == 0 && maskBytes[92] == 255)
+    }
+    #endif
+}

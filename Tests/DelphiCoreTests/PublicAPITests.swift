@@ -39,4 +39,6 @@ import DelphiCore
     _ = PlaceholderSpec(width: 1, height: 1, background: "#000000", foreground: "#ffffff", text: "")
     _ = ClipMargins(kept: .zero, in: CGSize(width: 1, height: 1))
     _ = ImageSplitEngine.Cell(row: 0, column: 0)
+    _ = MaskSpec(zoom: 1, offset: .zero, scale: 1)
+    _ = MaskSpec()
 }
