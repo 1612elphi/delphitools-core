@@ -35,3 +35,60 @@ public struct SplitSource: Sendable {
         return SplitSource(image: image, preview: preview, pixels: (width, height), name: url.lastPathComponent)
     }
 }
+
+/// An image cut into a grid of equal tiles.
+public enum ImageSplitEngine {
+    public struct Cell: Equatable, Sendable {
+        public let row: Int
+        public let column: Int
+
+        public init(row: Int, column: Int) {
+            (self.row, self.column) = (row, column)
+        }
+
+        /// `row-column`, counted from 1, as the web tool names the files.
+        public var label: String { "\(row + 1)-\(column + 1)" }
+    }
+
+    /// Whole pixels per tile; the remainder on the trailing and bottom edges is left out.
+    public static func tileSize(width: Int, height: Int, rows: Int, columns: Int) -> (width: Int, height: Int) {
+        (width / max(1, columns), height / max(1, rows))
+    }
+
+    public static func cells(rows: Int, columns: Int) -> [Cell] {
+        (0..<rows).flatMap { row in (0..<columns).map { Cell(row: row, column: $0) } }
+    }
+
+    /// The cell's crop in image pixels, top-left origin.
+    public static func rect(_ cell: Cell, width: Int, height: Int, rows: Int, columns: Int) -> CGRect {
+        let size = tileSize(width: width, height: height, rows: rows, columns: columns)
+        return CGRect(x: cell.column * size.width, y: cell.row * size.height, width: size.width, height: size.height)
+    }
+
+    #if DEBUG
+    public static func selfCheck() {
+        assert(tileSize(width: 1000, height: 601, rows: 3, columns: 3) == (333, 200))
+        assert(cells(rows: 2, columns: 3).count == 6 && cells(rows: 2, columns: 3)[4] == Cell(row: 1, column: 1))
+        assert(rect(Cell(row: 1, column: 2), width: 1000, height: 600, rows: 3, columns: 3) == CGRect(x: 666, y: 200, width: 333, height: 200))
+        assert(Cell(row: 0, column: 9).label == "1-10")
+    }
+    #endif
+}
+
+extension SplitSource {
+    public func crop(_ cell: ImageSplitEngine.Cell, rows: Int, columns: Int) -> CGImage? {
+        image.cropping(to: ImageSplitEngine.rect(cell, width: image.width, height: image.height, rows: rows, columns: columns))
+    }
+
+    /// `<stem>-<row>-<column>.png` and its bytes for each cell, or nil when a tile fails.
+    public func pngs(_ cells: [ImageSplitEngine.Cell], rows: Int, columns: Int) -> [(String, Data)]? {
+        var files: [(String, Data)] = []
+        for cell in cells {
+            guard let crop = crop(cell, rows: rows, columns: columns),
+                  let data = ImageOutputFormat.png.encode(crop, width: crop.width, height: crop.height, quality: 1, flatten: nil)
+            else { return nil }
+            files.append(("\(stem)-\(cell.label).png", data))
+        }
+        return files
+    }
+}

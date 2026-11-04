@@ -314,4 +314,8 @@ import UniformTypeIdentifiers
     PlaceholderSpec.selfCheck()
     FaviconEngine.selfCheck()
     Base64Image.selfCheck()
+    ArtworkNoise.selfCheck()
+    ClipMargins.selfCheck()
+    ImageSplitEngine.selfCheck()
+    DeskewGrab.selfCheck()
 }

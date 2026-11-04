@@ -154,3 +154,93 @@ public enum ImageDeskewEngine {
         hypot(b.x - a.x, b.y - a.y)
     }
 }
+
+/// What a pointer at a point takes hold of on a quad: a corner, an edge (two corners) or the whole quad.
+public enum DeskewGrab: Equatable, Sendable {
+    case corner(Int)
+    case edge(Int)
+    case whole
+
+    /// Reach in points.
+    public static let reach = (corner: 30.0, edge: 18.0)
+
+    public static func at(_ point: CGPoint, in quad: [CGPoint]) -> DeskewGrab? {
+        guard quad.count == 4 else { return nil }
+        let nearest = quad.indices.min { hypot(quad[$0].x - point.x, quad[$0].y - point.y) < hypot(quad[$1].x - point.x, quad[$1].y - point.y) }!
+        if hypot(quad[nearest].x - point.x, quad[nearest].y - point.y) <= reach.corner { return .corner(nearest) }
+        let distances = (0..<4).map { distance(from: point, to: quad[$0], quad[($0 + 1) % 4]) }
+        if let edge = distances.indices.min(by: { distances[$0] < distances[$1] }), distances[edge] <= reach.edge { return .edge(edge) }
+        return polygon(quad).contains(point) ? .whole : nil
+    }
+
+    /// `quad` with the grabbed corners moved by `delta`, held inside `size` together.
+    public static func move(_ quad: [CGPoint], _ grab: DeskewGrab, by delta: CGPoint, within size: CGSize) -> [CGPoint] {
+        let moving = switch grab {
+        case .corner(let index): [index]
+        case .edge(let index): [index, (index + 1) % 4]
+        case .whole: [0, 1, 2, 3]
+        }
+        var (dx, dy) = (delta.x, delta.y)
+        for index in moving {
+            dx = min(max(dx, -quad[index].x), size.width - quad[index].x)
+            dy = min(max(dy, -quad[index].y), size.height - quad[index].y)
+        }
+        var moved = quad
+        for index in moving { moved[index] = CGPoint(x: quad[index].x + dx, y: quad[index].y + dy) }
+        return moved
+    }
+
+    public static func polygon(_ points: [CGPoint]) -> CGPath {
+        let path = CGMutablePath()
+        guard let first = points.first else { return path }
+        path.move(to: first)
+        points.dropFirst().forEach { path.addLine(to: $0) }
+        path.closeSubpath()
+        return path
+    }
+
+    /// Lines through the quad at each `1/divisions` of its sides, foreshortened as the output will be.
+    public static func grid(through quad: [CGPoint], divisions: Int) -> CGPath {
+        let path = CGMutablePath()
+        guard quad.count == 4, divisions > 1 else { return path }
+        for step in 1..<divisions {
+            let share = Double(step) / Double(divisions)
+            path.move(to: ImageDeskewEngine.project(share, 0, into: quad))
+            path.addLine(to: ImageDeskewEngine.project(share, 1, into: quad))
+            path.move(to: ImageDeskewEngine.project(0, share, into: quad))
+            path.addLine(to: ImageDeskewEngine.project(1, share, into: quad))
+        }
+        return path
+    }
+
+    private static func distance(from point: CGPoint, to a: CGPoint, _ b: CGPoint) -> Double {
+        let (dx, dy) = (b.x - a.x, b.y - a.y)
+        let length = dx * dx + dy * dy
+        let t = length > 0 ? min(max(((point.x - a.x) * dx + (point.y - a.y) * dy) / length, 0), 1) : 0
+        return hypot(point.x - (a.x + t * dx), point.y - (a.y + t * dy))
+    }
+
+    #if DEBUG
+    public static func selfCheck() {
+        let square = [CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 0), CGPoint(x: 100, y: 100), CGPoint(x: 0, y: 100)]
+        assert(at(CGPoint(x: 10, y: 12), in: square) == .corner(0))
+        assert(at(CGPoint(x: 95, y: 104), in: square) == .corner(2))
+        assert(at(CGPoint(x: 50, y: -8), in: square) == .edge(0))
+        assert(at(CGPoint(x: 108, y: 50), in: square) == .edge(1))
+        assert(at(CGPoint(x: 50, y: 50), in: square) == .whole)
+        assert(at(CGPoint(x: 200, y: 200), in: square) == nil)
+        let size = CGSize(width: 120, height: 120)
+        assert(move(square, .corner(2), by: CGPoint(x: 50, y: 5), within: size)[2] == CGPoint(x: 120, y: 105))
+        let edge = move(square, .edge(3), by: CGPoint(x: -5, y: 10), within: size)
+        assert(edge[3] == CGPoint(x: 0, y: 110) && edge[0] == CGPoint(x: 0, y: 10) && edge[1] == square[1])
+        assert(move(square, .whole, by: CGPoint(x: 30, y: -3), within: size) == square.map { CGPoint(x: $0.x + 20, y: $0.y) })
+        let skewed = [CGPoint(x: 20, y: 10), CGPoint(x: 190, y: 5), CGPoint(x: 180, y: 95), CGPoint(x: 10, y: 80)]
+        for (corner, unit) in zip(skewed, [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]) {
+            let point = ImageDeskewEngine.project(unit.0, unit.1, into: skewed)
+            assert(abs(point.x - corner.x) < 1e-9 && abs(point.y - corner.y) < 1e-9)
+        }
+        let middle = ImageDeskewEngine.project(0.5, 0.5, into: square)
+        assert(abs(middle.x - 50) < 1e-9 && abs(middle.y - 50) < 1e-9)
+    }
+    #endif
+}
