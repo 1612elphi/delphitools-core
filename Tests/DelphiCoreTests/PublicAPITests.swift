@@ -41,4 +41,5 @@ import DelphiCore
     _ = ImageSplitEngine.Cell(row: 0, column: 0)
     _ = MaskSpec(zoom: 1, offset: .zero, scale: 1)
     _ = MaskSpec()
+    _ = TraceSettings()
 }

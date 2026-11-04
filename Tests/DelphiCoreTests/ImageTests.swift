@@ -319,4 +319,5 @@ import UniformTypeIdentifiers
     ImageSplitEngine.selfCheck()
     DeskewGrab.selfCheck()
     MaskSpec.selfCheck()
+    TraceSettings.selfCheck()
 }

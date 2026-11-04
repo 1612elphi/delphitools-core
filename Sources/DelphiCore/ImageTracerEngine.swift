@@ -11,7 +11,7 @@ public struct ImageTracerError: Error, LocalizedError {
 
 // MARK: - Presets
 
-public enum TracerPreset: String, CaseIterable, Identifiable {
+public enum TracerPreset: String, CaseIterable, Identifiable, Sendable {
     case `default`
     case posterized1, posterized2, posterized3
     case curvy, sharp, detailed, smoothed
@@ -188,4 +188,98 @@ public final class ImageTracerEngine {
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
         return pixels
     }
+}
+
+/// The tracer's options as the tool shows them; `apply` takes a preset's values from imagetracerjs `optionpresets`.
+public struct TraceSettings: Equatable, Sendable {
+    public var preset = TracerPreset.default
+    public var colours = 16
+    public var lineThreshold = 1.0
+    public var curveThreshold = 1.0
+    public var pathOmit = 8.0
+    public var strokeWidth = 1.0
+    public var scale = 1.0
+    public var blurRadius = 0.0
+    public var blurDelta = 20.0
+    public var colourSampling = 2
+    public var minColourRatio = 0.0
+    public var roundCoords = 1.0
+
+    public init(preset: TracerPreset = .default, scale: Double = 1) {
+        (self.preset, self.scale) = (preset, scale)
+    }
+
+    public static let strokes = [0, 0.5, 1, 2, 3, 5]
+    public static let scales = [0.5, 1, 2, 3, 5]
+    /// imagetracer's zero is 0.01
+    public static let leastThreshold = 0.01
+
+    public static let presets: [(preset: TracerPreset, name: String)] = [
+        (.default, String(localized: "Default")), (.posterized1, "Monoposto"), (.posterized2, "Saul's World"), (.posterized3, "Powders"),
+        (.curvy, "Bouba"), (.sharp, "Kiki"), (.detailed, "Intricate"), (.smoothed, "Papered"),
+        (.grayscale, "Mono"), (.fixedpalette, "Genlock"), (.randomsampling1, "Logan"), (.randomsampling2, "Clockwise"),
+        (.artistic1, "Theories"), (.artistic2, "Dustbowl"), (.artistic3, "Warrant"), (.artistic4, "Sparkle"),
+    ]
+
+    public static func number(_ value: Double) -> String {
+        value.rounded() == value ? "\(Int(value))" : String(format: "%g", value)
+    }
+
+    public static func strokeLabel(_ width: Double) -> String {
+        width == 0 ? String(localized: "None") : number(width)
+    }
+
+    public static func smoothing(_ value: Double) -> String {
+        value < 0.05 ? "0.01" : String(format: "%.1f", value)
+    }
+
+    public mutating func apply(_ chosen: TracerPreset) {
+        self = TraceSettings(preset: chosen, scale: scale)
+        switch chosen {
+        case .default: break
+        case .posterized1: (colourSampling, colours) = (0, 2)
+        case .posterized2: (colours, blurRadius) = (4, 5)
+        case .posterized3: (pathOmit, colourSampling, colours, blurRadius, strokeWidth) = (20, 0, 3, 3, 0)
+        case .curvy: lineThreshold = Self.leastThreshold
+        case .sharp: curveThreshold = Self.leastThreshold
+        case .detailed: (pathOmit, roundCoords, lineThreshold, curveThreshold, colours) = (0, 2, 0.5, 0.5, 64)
+        case .smoothed: (blurRadius, blurDelta) = (5, 64)
+        case .grayscale: (colourSampling, colours) = (0, 7)
+        case .fixedpalette: (colourSampling, colours) = (0, 27)
+        case .randomsampling1: (colourSampling, colours) = (1, 8)
+        case .randomsampling2: (colourSampling, colours) = (1, 64)
+        case .artistic1:
+            (colourSampling, pathOmit, blurRadius, blurDelta, lineThreshold, strokeWidth) = (0, 0, 5, 64, Self.leastThreshold, 2)
+        case .artistic2: (curveThreshold, colourSampling, colours, strokeWidth) = (Self.leastThreshold, 0, 4, 0)
+        case .artistic3: (curveThreshold, lineThreshold, colours) = (10, 10, 8)
+        case .artistic4: (curveThreshold, lineThreshold, colours, blurRadius, blurDelta, strokeWidth) = (10, 10, 64, 5, 256, 2)
+        }
+    }
+
+    public var overrides: [String: Any] {
+        [
+            "numberofcolors": colours,
+            "ltres": max(lineThreshold, Self.leastThreshold),
+            "qtres": max(curveThreshold, Self.leastThreshold),
+            "pathomit": Int(pathOmit),
+            "strokewidth": strokeWidth,
+            "scale": scale,
+            "blurradius": Int(blurRadius),
+            "blurdelta": Int(blurDelta),
+            "colorsampling": colourSampling,
+            "mincolorratio": minColourRatio,
+            "roundcoords": Int(roundCoords),
+        ]
+    }
+
+    #if DEBUG
+    public static func selfCheck() {
+        var settings = TraceSettings(scale: 2)
+        settings.apply(.sharp)
+        assert(settings.scale == 2 && settings.curveThreshold == leastThreshold && settings.preset == .sharp)
+        settings.lineThreshold = 0
+        assert(settings.overrides["ltres"] as? Double == leastThreshold)
+        assert(presets.count == TracerPreset.allCases.count && number(0.5) == "0.5" && number(3) == "3")
+    }
+    #endif
 }
