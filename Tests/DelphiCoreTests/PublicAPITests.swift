@@ -21,6 +21,7 @@ import DelphiCore
     _ = ShavianTransliteration()
     _ = ShavianEngine()
     _ = MorseEngine.Timing(on: false, ms: 1)
+    _ = DotFont.station.columns("A")
     _ = PaletteDraft(category: .mood, count: 4, seed: DelphiColour(r: 1, g: 0, b: 0))
     _ = ScientificCalculator()
     _ = SciCalcSyntax.Piece(text: ")", kind: .ghost)
