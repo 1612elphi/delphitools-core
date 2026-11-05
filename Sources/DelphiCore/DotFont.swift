@@ -8,8 +8,6 @@ public nonisolated struct DotFont: Sendable {
 
     /// `art` maps each character to its rows, `#` lit and `.` dark; a glyph's width is its row length.
     init(name: String, height: Int, art: [Character: [String]]) {
-        self.name = name
-        self.height = height
         var glyphs: [Character: [UInt16]] = [:]
         for (character, rows) in art {
             let width = rows.first?.count ?? 0
@@ -19,6 +17,13 @@ public nonisolated struct DotFont: Sendable {
                 }
             }
         }
+        self.init(name: name, height: height, glyphs: glyphs)
+    }
+
+    private init(name: String, height: Int, glyphs: [Character: [UInt16]]) {
+        self.name = name
+        self.height = height
+        var glyphs = glyphs
         // tabular digits: a changing clock keeps its width
         let digits = "0123456789"
         let advance = digits.compactMap { glyphs[$0]?.count }.max() ?? 0
@@ -43,9 +48,24 @@ public nonisolated struct DotFont: Sendable {
         return out
     }
 
-    public static let all = [station]
+    /// Every board draws 7 text rows; a shorter font sits centred in them.
+    public static let rows = 7
+
+    public static let all = [station, tiny, bold]
 
     public static let station = DotFont(name: "Station", height: 7, art: stationArt)
+
+    /// 3×5; lower case draws as capitals.
+    public static let tiny: DotFont = {
+        var art = tinyArt
+        for (character, rows) in tinyArt where character.isUppercase { art[Character(character.lowercased())] = rows }
+        return DotFont(name: "Tiny", height: 5, art: art)
+    }()
+
+    /// Station with every lit column smeared one dot to the right.
+    public static let bold = DotFont(name: "Bold", height: 7, glyphs: station.glyphs.mapValues { glyph in
+        (0...glyph.count).map { x in (x < glyph.count ? glyph[x] : 0) | (x > 0 ? glyph[x - 1] : 0) }
+    })
 
     #if DEBUG
     public static func selfCheck() {
@@ -53,8 +73,19 @@ public nonisolated struct DotFont: Sendable {
             assert(rows.count == 7, "\(character) has \(rows.count) rows")
             assert(Set(rows.map(\.count)).count == 1, "\(character) rows differ in width")
         }
-        let required = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;!?-+/()'\"%°‹›·=_"
-        for character in required { assert(station.covers(character), "station lacks \(character)") }
+        for (character, rows) in tinyArt {
+            assert(rows.count == 5, "tiny \(character) has \(rows.count) rows")
+            assert(Set(rows.map(\.count)).count == 1, "tiny \(character) rows differ in width")
+        }
+        let required = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;!?-+/()'\"%°‹›·=_#@&*<>[]|$~"
+        for font in all {
+            assert(font.height <= rows)
+            for character in required { assert(font.covers(character), "\(font.name) lacks \(character)") }
+            assert(font.glyphs.values.allSatisfy { $0.allSatisfy { $0 < 1 << font.height } }, "\(font.name) draws below its height")
+            assert(Set("0123456789".map { font.columns(String($0)).count }).count == 1, "\(font.name) digits are not tabular")
+        }
+        assert(bold.columns("I") == [0b1000001, 0b1111111, 0b1111111, 0b1000001])
+        assert(tiny.columns("a") == tiny.columns("A"))
         assert(station.columns("I") == [0b1000001, 0b1111111, 0b1000001])
         assert(station.columns("ii").count == 3)
         assert(Set("0123456789".map { station.columns(String($0)).count }).count == 1)
@@ -148,5 +179,87 @@ private nonisolated let stationArt: [Character: [String]] = [
     "°": [".##.", "#..#", "#..#", ".##.", "....", "....", "...."],
     "‹": ["...", "..#", ".#.", "#..", ".#.", "..#", "..."],
     "›": ["...", "#..", ".#.", "..#", ".#.", "#..", "..."],
+    "#": [".#.#.", ".#.#.", "#####", ".#.#.", "#####", ".#.#.", ".#.#."],
+    "@": [".###.", "#...#", "#.###", "#.#.#", "#.###", "#....", ".###."],
+    "&": [".##..", "#..#.", "#.#..", ".#...", "#.#.#", "#..#.", ".##.#"],
+    "*": [".....", "#.#.#", ".###.", "#####", ".###.", "#.#.#", "....."],
+    "<": ["...#", "..#.", ".#..", "#...", ".#..", "..#.", "...#"],
+    ">": ["#...", ".#..", "..#.", "...#", "..#.", ".#..", "#..."],
+    "[": ["###", "#..", "#..", "#..", "#..", "#..", "###"],
+    "]": ["###", "..#", "..#", "..#", "..#", "..#", "###"],
+    "|": ["#", "#", "#", "#", "#", "#", "#"],
+    "$": ["..#..", ".####", "#.#..", ".###.", "..#.#", "####.", "..#.."],
+    "~": [".....", ".....", ".#...", "#.#.#", "...#.", ".....", "....."],
     "·": [".", ".", ".", "#", ".", ".", "."],
+]
+
+private nonisolated let tinyArt: [Character: [String]] = [
+    "A": [".#.", "#.#", "###", "#.#", "#.#"],
+    "B": ["##.", "#.#", "##.", "#.#", "##."],
+    "C": [".##", "#..", "#..", "#..", ".##"],
+    "D": ["##.", "#.#", "#.#", "#.#", "##."],
+    "E": ["###", "#..", "##.", "#..", "###"],
+    "F": ["###", "#..", "##.", "#..", "#.."],
+    "G": [".##", "#..", "#.#", "#.#", ".##"],
+    "H": ["#.#", "#.#", "###", "#.#", "#.#"],
+    "I": ["###", ".#.", ".#.", ".#.", "###"],
+    "J": ["..#", "..#", "..#", "#.#", ".#."],
+    "K": ["#.#", "#.#", "##.", "#.#", "#.#"],
+    "L": ["#..", "#..", "#..", "#..", "###"],
+    "M": ["#...#", "##.##", "#.#.#", "#...#", "#...#"],
+    "N": ["#..#", "##.#", "#.##", "#..#", "#..#"],
+    "O": [".#.", "#.#", "#.#", "#.#", ".#."],
+    "P": ["##.", "#.#", "##.", "#..", "#.."],
+    "Q": [".#.", "#.#", "#.#", "##.", ".##"],
+    "R": ["##.", "#.#", "##.", "#.#", "#.#"],
+    "S": [".##", "#..", ".#.", "..#", "##."],
+    "T": ["###", ".#.", ".#.", ".#.", ".#."],
+    "U": ["#.#", "#.#", "#.#", "#.#", "###"],
+    "V": ["#.#", "#.#", "#.#", "#.#", ".#."],
+    "W": ["#...#", "#...#", "#.#.#", "##.##", "#...#"],
+    "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
+    "Y": ["#.#", "#.#", ".#.", ".#.", ".#."],
+    "Z": ["###", "..#", ".#.", "#..", "###"],
+    "0": ["###", "#.#", "#.#", "#.#", "###"],
+    "1": [".#.", "##.", ".#.", ".#.", "###"],
+    "2": ["##.", "..#", ".#.", "#..", "###"],
+    "3": ["##.", "..#", ".#.", "..#", "##."],
+    "4": ["#.#", "#.#", "###", "..#", "..#"],
+    "5": ["###", "#..", "##.", "..#", "##."],
+    "6": [".##", "#..", "###", "#.#", "###"],
+    "7": ["###", "..#", ".#.", ".#.", ".#."],
+    "8": ["###", "#.#", "###", "#.#", "###"],
+    "9": ["###", "#.#", "###", "..#", "##."],
+    " ": ["..", "..", "..", "..", ".."],
+    ".": [".", ".", ".", ".", "#"],
+    ",": [".", ".", ".", "#", "#"],
+    ":": [".", "#", ".", "#", "."],
+    ";": ["..", ".#", "..", ".#", "#."],
+    "!": ["#", "#", "#", ".", "#"],
+    "?": ["##.", "..#", ".#.", "...", ".#."],
+    "-": ["...", "...", "###", "...", "..."],
+    "+": ["...", ".#.", "###", ".#.", "..."],
+    "=": ["...", "###", "...", "###", "..."],
+    "_": ["...", "...", "...", "...", "###"],
+    "/": ["..#", "..#", ".#.", "#..", "#.."],
+    "(": [".#", "#.", "#.", "#.", ".#"],
+    ")": ["#.", ".#", ".#", ".#", "#."],
+    "'": ["#", "#", ".", ".", "."],
+    "\"": ["#.#", "#.#", "...", "...", "..."],
+    "%": ["#.#", "..#", ".#.", "#..", "#.#"],
+    "°": ["###", "#.#", "###", "...", "..."],
+    "‹": ["..#", ".#.", "#..", ".#.", "..#"],
+    "›": ["#..", ".#.", "..#", ".#.", "#.."],
+    "#": ["#.#", "###", "#.#", "###", "#.#"],
+    "@": ["###", "#.#", "#.#", "#..", ".##"],
+    "&": [".#.", "#.#", ".#.", "#.#", ".##"],
+    "*": ["...", "#.#", ".#.", "#.#", "..."],
+    "<": ["..#", ".#.", "#..", ".#.", "..#"],
+    ">": ["#..", ".#.", "..#", ".#.", "#.."],
+    "[": ["##", "#.", "#.", "#.", "##"],
+    "]": ["##", ".#", ".#", ".#", "##"],
+    "|": ["#", "#", "#", "#", "#"],
+    "$": [".##", "##.", ".#.", ".##", "##."],
+    "~": ["....", "....", ".#.#", "#.#.", "...."],
+    "·": [".", ".", "#", ".", "."],
 ]
