@@ -19,6 +19,14 @@ public nonisolated struct DotFont: Sendable {
                 }
             }
         }
+        // tabular digits: a changing clock keeps its width
+        let digits = "0123456789"
+        let advance = digits.compactMap { glyphs[$0]?.count }.max() ?? 0
+        for digit in digits {
+            guard let glyph = glyphs[digit], glyph.count < advance else { continue }
+            let left = (advance - glyph.count) / 2
+            glyphs[digit] = Array(repeating: 0, count: left) + glyph + Array(repeating: 0, count: advance - glyph.count - left)
+        }
         self.glyphs = glyphs
     }
 
@@ -49,6 +57,8 @@ public nonisolated struct DotFont: Sendable {
         for character in required { assert(station.covers(character), "station lacks \(character)") }
         assert(station.columns("I") == [0b1000001, 0b1111111, 0b1000001])
         assert(station.columns("ii").count == 3)
+        assert(Set("0123456789".map { station.columns(String($0)).count }).count == 1)
+        assert(station.columns("10:59").count == station.columns("11:11").count)
         // fallback is ?
         assert(station.columns("\u{2603}") == station.columns("?"))
     }
