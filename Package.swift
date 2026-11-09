@@ -7,6 +7,7 @@ let package = Package(
     platforms: [.macOS(.v15), .iOS(.v17)],
     products: [
         .library(name: "DelphiCore", targets: ["DelphiCore"]),
+        .library(name: "DelphiMacros", targets: ["DelphiMacros"]),
     ],
     targets: [
         .target(
@@ -23,9 +24,14 @@ let package = Package(
                 .copy("Resources/unicode-blocks.json"),
             ]
         ),
+        .target(name: "DelphiMacros"),
         .testTarget(
             name: "DelphiCoreTests",
             dependencies: ["DelphiCore"]
+        ),
+        .testTarget(
+            name: "DelphiMacrosTests",
+            dependencies: ["DelphiMacros"]
         ),
     ],
     swiftLanguageModes: [.v6]
