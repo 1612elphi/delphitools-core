@@ -1,5 +1,32 @@
-.DS_Store
+# build output
 .build/
 .swiftpm/
 Package.resolved
 build/
+
+# macOS noise
+.DS_Store
+
+# claude / local-only working notes
+AGENTS.md
+CLAUDE.md
+/.claude/
+/.superpowers/
+
+# agent worktrees and scratch clones
+/.delta/
+/.emdash/
+/.context/
+
+# editors
+/.cursor/
+/.vscode/
+/.idea/
+/.zed/
+
+# wheelybin: local-only scratch
+/wheelybin/
+
+# session scratch (one-off debug/repro rigs land as root dot-files;
+# anything worth keeping graduates into scripts/verify/)
+/.*.mjs

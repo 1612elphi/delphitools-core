@@ -12,3 +12,36 @@ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+Third-party works in this repository
+------------------------------------
+
+The 0BSD grant above covers the code and data written for DelphiCore. The
+files below are the work of others, carried in this repository under their
+own licences, which continue to apply to them:
+
+  Sources/DelphiCore/Resources/nerdamer-all.min.js
+      nerdamer 1.1.13 (Martin Donk), MIT.
+
+  Sources/DelphiCore/Resources/svgo.browser.js
+      SVGO 4.0.0 browser build (Kir Belevich and SVGO contributors), MIT.
+
+  Sources/DelphiCore/Resources/imagetracer_v1.2.6.js
+      imagetracerjs (Andras Jankovics), The Unlicense.
+
+  Sources/DelphiCore/Resources/colour-names.json
+      The "bestof" list of color-names (David Aerne and contributors), MIT.
+
+  Sources/DelphiCore/Resources/shavian-dictionary-core.json,
+  Sources/DelphiCore/Resources/shavian-dictionary-full.json
+      Derived from the CMU Pronouncing Dictionary (Carnegie Mellon
+      University), BSD-2-Clause.
+
+  Sources/DelphiCore/Resources/world-land.json
+      Derived from the Natural Earth 110 m land polygons
+      (naturalearthdata.com), public domain.
+
+  Sources/DelphiCore/Resources/unicode-blocks.json
+      Derived from Blocks.txt of the Unicode Character Database
+      (Unicode, Inc.), Unicode License v3.
