@@ -5,7 +5,7 @@
 # Installation
 
 ```swift
-.package(url: "https://github.com/1612elphi/delphitools-core.git", from: "0.1.0"),
+.package(url: "https://github.com/1612elphi/delphitools-core.git", from: "0.1.1"),
 ```
 
 ```swift
